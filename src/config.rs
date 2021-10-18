@@ -15,6 +15,7 @@ pub fn from_env() -> Figment {
     };
 
     Config::figment()
+        .merge(("address", "0.0.0.0"))
         .merge(("port", port))
         .merge(("databases", map!["postgres" => db]))
 }
