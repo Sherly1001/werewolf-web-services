@@ -1,3 +1,5 @@
+use werewolf_services;
+
 fn main() {
-    println!("Hello, world!");
+    werewolf_services::run();
 }
