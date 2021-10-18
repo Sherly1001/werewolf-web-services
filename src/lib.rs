@@ -3,6 +3,8 @@ extern crate rocket;
 extern crate dotenv;
 
 mod config;
+mod db;
+mod routes;
 
 #[rocket::main]
 pub async fn run() {
