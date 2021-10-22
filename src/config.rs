@@ -33,8 +33,14 @@ pub fn from_env() -> Figment {
         .parse::<u16>()
         .expect("PORT environment variable should parse to an integer");
 
-    let db = map! {
-        "url" => env::var("DATABASE_URL").expect("No DATABASE_URL environment variable found"),
+    let db = rocket_sync_db_pools::Config {
+        url: env::var("DATABASE_URL").expect("No DATABASE_URL environment variable found"),
+        pool_size: env::var("DATABASE_POOL_SIZE")
+            .map(|size| size.parse().expect("pool_size not u32 type"))
+            .unwrap_or_else(|_| 5),
+        timeout: env::var("DATABASE_TIMEOUT")
+            .map(|size| size.parse().expect("pool_size not u8 type"))
+            .unwrap_or_else(|_| 5),
     };
 
     Config::figment()
