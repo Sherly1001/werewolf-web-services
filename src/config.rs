@@ -39,7 +39,7 @@ pub fn from_env() -> Figment {
             .map(|size| size.parse().expect("pool_size not u32 type"))
             .unwrap_or_else(|_| 5),
         timeout: env::var("DATABASE_TIMEOUT")
-            .map(|size| size.parse().expect("pool_size not u8 type"))
+            .map(|timout| timout.parse().expect("timeout not u8 type"))
             .unwrap_or_else(|_| 5),
     };
 
