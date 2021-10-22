@@ -7,6 +7,7 @@ extern crate crypto;
 #[macro_use]
 extern crate diesel;
 
+use rocket_cors;
 
 mod config;
 mod db;
@@ -17,6 +18,7 @@ mod auth;
 mod errors;
 
 use rocket::serde::json::{Value, serde_json::json};
+use rocket_cors::Cors;
 
 #[catch(403)]
 fn forbidden() -> Value {
@@ -34,6 +36,10 @@ fn not_found() -> Value {
     })
 }
 
+fn cors_fairing() -> Cors {
+    Cors::from_options(&Default::default()).expect("Cors fairing cannot be created")
+}
+
 #[rocket::main]
 pub async fn run() {
     rocket::custom(config::from_env())
@@ -45,6 +51,7 @@ pub async fn run() {
         .register("/", catchers![forbidden, not_found])
         .manage(config::AppState::new())
         .attach(db::Conn::fairing())
+        .attach(cors_fairing())
         .launch()
         .await.unwrap();
 }
