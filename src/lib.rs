@@ -18,7 +18,7 @@ mod auth;
 mod errors;
 
 use rocket::serde::json::{Value, serde_json::json};
-use rocket_cors::Cors;
+use rocket_cors::{Cors, CorsOptions};
 
 #[catch(403)]
 fn forbidden() -> Value {
@@ -37,7 +37,7 @@ fn not_found() -> Value {
 }
 
 fn cors_fairing() -> Cors {
-    Cors::from_options(&Default::default()).expect("Cors fairing cannot be created")
+    Cors::from_options(&CorsOptions::default()).expect("Cors fairing cannot be created")
 }
 
 #[rocket::main]
