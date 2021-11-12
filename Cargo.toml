@@ -14,6 +14,7 @@ dotenv = "0.15.0"
 jsonwebtoken = "7.2.0"
 rust-crypto = "0.2.36"
 chrono = "0.4.19"
+chashmap = "2.2.2"
 
 [dependencies.serde_derive]
 version = "1.0"
