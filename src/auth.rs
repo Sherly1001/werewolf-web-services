@@ -50,7 +50,7 @@ fn extract_token_from_header(header: &str) -> Option<&str> {
     }
 }
 
-fn decode_token(token: &str, secret: &[u8]) -> Option<Auth> {
+pub fn decode_token(token: &str, secret: &[u8]) -> Option<Auth> {
     jwt::decode(token, &DecodingKey::from_secret(secret), &Validation::new(Algorithm::HS256))
         .map_err(|err| {
             eprintln!("Auth decode error: {:?}", err);
