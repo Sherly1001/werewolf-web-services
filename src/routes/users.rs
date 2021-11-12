@@ -30,7 +30,10 @@ pub async fn create(
 
     conn.run(move |c| {
         db::users::create(c, &new_user.username, &new_user.passwd, new_user.avatar_url.as_deref())
-    }).await.map(|user| json!({ "user": user.to_auth_user(&state.secret) }))
+    }).await.map(|user| json!({
+        "status": "ok",
+        "data": { "user": user.to_auth_user(&state.secret) },
+    }))
     .map_err(|err| {
         let err = match err {
             UserCreationError::DuplicatedUsername => "username has already been taken",
@@ -47,8 +50,9 @@ pub async fn get_users(_auth: Auth, conn: db::Conn) -> Value {
     }).await;
 
     json!({
-        "users": users.iter().map(|u| u.to_display_user())
-            .collect::<Vec<models::user::DisplayUser>>()
+        "status": "ok",
+        "data": users.iter().map(|u| u.to_display_user())
+                .collect::<Vec<models::user::DisplayUser>>(),
     })
 }
 
@@ -74,6 +78,9 @@ pub async fn login(
 
     conn.run(move |c| {
         db::users::login(c, &user.username, &user.passwd)
-    }).await.map(|user| json!({ "user": user.to_auth_user(&state.secret) }))
+    }).await.map(|user| json!({
+        "status": "ok",
+        "data": { "user": user.to_auth_user(&state.secret) },
+    }))
     .ok_or_else(|| errors::Error::new("email or password is invalid"))
 }
