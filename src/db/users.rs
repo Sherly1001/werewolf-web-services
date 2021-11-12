@@ -72,6 +72,7 @@ pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Option<User> 
     }
 }
 
+#[allow(dead_code)]
 pub fn find(conn: &PgConnection, username: &str) -> Option<User> {
     users::table.filter(users::username.eq(username))
         .get_result::<User>(conn)

@@ -1,6 +1,5 @@
 use rocket::Config;
 use rocket::figment::{Figment, util::map};
-use dotenv::dotenv;
 use std::env;
 
 pub const TOKEN_PREFIX: &'static str = "Token ";
@@ -27,7 +26,6 @@ impl AppState {
 }
 
 pub fn from_env() -> Figment {
-    dotenv().ok();
     let port = env::var("PORT")
         .unwrap_or_else(|_| "8080".to_string())
         .parse::<u16>()

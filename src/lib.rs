@@ -1,8 +1,5 @@
 #[macro_use]
 extern crate rocket;
-extern crate dotenv;
-extern crate jsonwebtoken;
-extern crate crypto;
 
 #[macro_use]
 extern crate diesel;
@@ -42,6 +39,8 @@ fn cors_fairing() -> Cors {
 
 #[rocket::main]
 pub async fn run() {
+    dotenv::dotenv().ok();
+
     rocket::custom(config::from_env())
         .mount("/users", routes![
             routes::users::create,
