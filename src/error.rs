@@ -1,5 +1,5 @@
-use actix_web::{HttpResponse, ResponseError, http::StatusCode};
-use serde::{Serialize, Deserialize};
+use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
 pub type Res = Result<HttpResponse, ResErr>;
@@ -10,6 +10,16 @@ pub struct ResBody<T> {
     data: T,
 }
 
+impl<T: Serialize> ResBody<T> {
+    pub fn new(msg: String, data: T) -> Res {
+        Ok(HttpResponse::Ok().json(Self::new_body(msg, data)))
+    }
+
+    pub fn new_body(msg: String, data: T) -> Self {
+        Self { message: msg, data }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ResErr {
     stt: StatusCode,
@@ -18,13 +28,17 @@ pub struct ResErr {
 
 impl ResErr {
     #[allow(dead_code)]
-    pub fn new(stt: StatusCode, msg: String) -> Self {
+    pub fn new(stt: StatusCode, msg: String) -> Res {
+        Err(Self::new_err(stt, msg))
+    }
+
+    pub fn new_err(stt: StatusCode, msg: String) -> Self {
         Self {
             stt,
             body: ResBody {
                 message: msg,
                 data: "",
-            }
+            },
         }
     }
 }
