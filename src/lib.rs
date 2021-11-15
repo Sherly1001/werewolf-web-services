@@ -14,6 +14,9 @@ async fn notfound_handle() -> Res {
 #[actix_web::main]
 pub async fn run() -> std::io::Result<()> {
     dotenv::dotenv().ok();
+
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let config = config::load()?;
     let app_state = config.app_state.clone();
 
