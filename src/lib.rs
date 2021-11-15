@@ -1,20 +1,29 @@
-use actix_web::{App, HttpServer, http::StatusCode, web};
+use actix_web::{http::StatusCode, middleware, web, App, HttpServer};
 
-
+mod config;
 mod error;
-use error::ResErr;
+use error::{Res, ResErr};
 
-async fn notfound_handle() -> error::Res {
-    Err(ResErr::new(StatusCode::BAD_REQUEST, "resource not found".to_string()))
+async fn notfound_handle() -> Res {
+    Err(ResErr::new(
+        StatusCode::BAD_REQUEST,
+        "resource not found".to_string(),
+    ))
 }
 
 #[actix_web::main]
 pub async fn run() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    dotenv::dotenv().ok();
+    let config = config::load()?;
+    let app_state = config.app_state.clone();
+
+    HttpServer::new(move || {
         App::new()
+            .wrap(middleware::Logger::default())
+            .data(app_state.clone())
             .default_service(web::to(notfound_handle))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", config.port))?
     .run()
     .await
 }
