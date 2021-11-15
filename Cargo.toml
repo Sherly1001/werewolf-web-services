@@ -6,20 +6,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { version = "0.5.0-rc.1", features = ["json"] }
-diesel = { version = "1.4.8", features = ["postgres"] }
-rocket_cors = { git = "https://github.com/lawliet89/rocket_cors", branch = "master" }
-serde = "1.0"
-dotenv = "0.15.0"
-jsonwebtoken = "7.2.0"
-rust-crypto = "0.2.36"
-chrono = "0.4.19"
-chashmap = "2.2.2"
-
-[dependencies.serde_derive]
-version = "1.0"
-
-[dependencies.rocket_sync_db_pools]
-version = "0.1.0-rc.1"
-default-features = false
-features = ["diesel_postgres_pool"]
+actix = "0.10.0"
+actix-web = "3"
+actix-web-actors = "3"
