@@ -37,25 +37,19 @@ pub fn create(
         .get_result(conn)
 }
 
-pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Option<User> {
+pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Result<User, &'static str> {
     let user = users::table
         .filter(users::username.eq(username))
         .get_result::<User>(conn)
-        .map_err(|err| println!("login err: {}", err))
-        .ok()?;
+        .map_err(|_| "login failed")?;
 
-    if scrypt_check(passwd, &user.hash_passwd)
-        .map_err(|err| eprint!("login_user: scrypt_check err: {}", err))
-        .ok()?
-    {
-        Some(user)
-    } else {
-        eprintln!(
-            "login attempt for '{}' failed: password doesn't match",
-            username
-        );
-        None
-    }
+    scrypt_check(passwd, &user.hash_passwd).and_then(|rs| {
+        if rs {
+            Ok(user)
+        } else {
+            Err("login failed")
+        }
+    })
 }
 
 pub fn get_all(conn: &PgConnection) -> Result<Vec<User>, diesel::result::Error> {

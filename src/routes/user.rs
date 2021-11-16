@@ -1,10 +1,10 @@
-use actix_web::error::{ErrorUnauthorized, ErrorUnprocessableEntity};
+use actix_web::error::{BlockingError, ErrorUnauthorized, ErrorUnprocessableEntity};
 use actix_web::{get, post, web};
 use serde::Deserialize;
 
+use crate::auth::Auth;
 use crate::config::{AppState, DbPool};
 use crate::db::user;
-use crate::auth::Auth;
 use crate::error::{Res, ResBody};
 use crate::models::user::UserDisplay;
 
@@ -21,6 +21,14 @@ pub async fn create(
     state: web::Data<AppState>,
     new_user: web::Json<NewUser>,
 ) -> Res {
+    if new_user.username == "" {
+        return Err(ErrorUnprocessableEntity("username is empty"));
+    }
+
+    if new_user.passwd == "" {
+        return Err(ErrorUnprocessableEntity("password is empty"));
+    }
+
     let mut id_generator = state.id_generatator;
 
     let user = web::block(move || {
@@ -34,7 +42,13 @@ pub async fn create(
         )
     })
     .await
-    .map_err(|e| ErrorUnprocessableEntity(e.to_string()))?;
+    .map_err(|err| {
+        if err.to_string().contains("users_username_key") {
+            ErrorUnprocessableEntity("username existed")
+        } else {
+            ErrorUnprocessableEntity(err)
+        }
+    })?;
 
     ResBody::new(
         "ok".to_string(),
@@ -57,10 +71,12 @@ pub async fn login(
     let user = web::block(move || {
         let conn = pool.get().unwrap();
         user::login(&conn, &login_user.username, &login_user.passwd)
-            .ok_or("email or password is invalid")
     })
     .await
-    .map_err(|e| ErrorUnauthorized(e))?;
+    .map_err(|e| match e {
+        BlockingError::Error(err) => ErrorUnauthorized(err),
+        BlockingError::Canceled => ErrorUnauthorized("login failed"),
+    })?;
 
     ResBody::new(
         "ok".to_string(),
@@ -72,7 +88,12 @@ pub async fn login(
 pub async fn get_all(_auth: Auth, pool: web::Data<DbPool>) -> Res {
     let users = web::block(move || {
         let conn = pool.get().unwrap();
-        user::get_all(&conn).map(|users| users.iter().map(|u| u.to_display_user()).collect::<Vec<UserDisplay>>())
+        user::get_all(&conn).map(|users| {
+            users
+                .iter()
+                .map(|u| u.to_display_user())
+                .collect::<Vec<UserDisplay>>()
+        })
     })
     .await?;
 
