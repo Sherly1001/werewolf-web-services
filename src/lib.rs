@@ -30,7 +30,10 @@ pub async fn run() -> std::io::Result<()> {
     let db_pool = config.db_pool.clone();
 
     HttpServer::new(move || {
+        let cors = actix_cors::Cors::permissive();
+
         App::new()
+            .wrap(cors)
             .wrap(error::ResErrWrap)
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::default())
