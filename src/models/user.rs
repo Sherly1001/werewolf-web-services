@@ -1,10 +1,10 @@
-use rocket::serde::{Serialize, Deserialize};
-use chrono::{Duration, Utc};
-
+use serde::{Serialize, Deserialize};
+use chrono::{Utc, Duration};
 use crate::auth::Auth;
 
-#[derive(Queryable, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Queryable)]
 pub struct User {
+    pub id: i64,
     pub username: String,
     pub hash_passwd: String,
     pub email: Option<String>,
@@ -13,38 +13,38 @@ pub struct User {
     pub lose: Option<i64>,
 }
 
-#[derive(Serialize)]
-pub struct UserAuth<'a> {
-    pub username: &'a str,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserAuth {
     pub token: String,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct DisplayUser<'a> {
-    pub username: &'a str,
-    pub avatar_url: Option<&'a str>,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserDisplay {
+    pub id: i64,
+    pub username: String,
+    pub avatar_url: Option<String>,
     pub win: Option<i64>,
     pub lose: Option<i64>,
 }
 
 impl User {
-    pub fn to_auth_user(&self, secret: &[u8]) -> UserAuth {
+    pub fn to_user_auth(&self, secret: &[u8]) -> UserAuth {
         let exp = Utc::now() + Duration::days(60);
         let token = Auth {
-            username: self.username.clone(),
             exp: exp.timestamp(),
+            user_id: self.id,
         }.token(secret);
 
         UserAuth {
-            username: &self.username,
             token,
         }
     }
 
-    pub fn to_display_user(&self) -> DisplayUser {
-        DisplayUser {
-            username: &self.username,
-            avatar_url: self.avatar_url.as_deref(),
+    pub fn to_display_user(&self) -> UserDisplay {
+        UserDisplay {
+            id: self.id,
+            username: self.username.clone(),
+            avatar_url: self.avatar_url.clone(),
             win: self.win,
             lose: self.lose,
         }

@@ -1,5 +1,5 @@
 use werewolf_services;
 
-fn main() {
-    werewolf_services::run();
+fn main() -> std::io::Result<()> {
+    werewolf_services::run()
 }

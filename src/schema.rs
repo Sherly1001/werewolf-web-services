@@ -1,5 +1,6 @@
 table! {
-    users (username) {
+    users (id) {
+        id -> Int8,
         username -> Text,
         hash_passwd -> Text,
         email -> Nullable<Text>,

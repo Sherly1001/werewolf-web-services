@@ -1,59 +1,64 @@
-use rocket::State;
-use rocket::http::Status;
-use rocket::outcome::Outcome;
-use rocket::request::{self, FromRequest, Request};
-use rocket::serde::{Serialize, Deserialize};
-use jsonwebtoken::{self as jwt, Header, EncodingKey, DecodingKey, Validation, Algorithm};
+use actix_web::{
+    dev::Payload, error::ErrorUnauthorized, http::header, web::Data, Error, FromRequest,
+    HttpRequest,
+};
+use jsonwebtoken::{self as jwt, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 
-use crate::config::{self, AppState};
+use std::future::Future;
+use std::pin::Pin;
 
-#[derive(Debug, Serialize, Deserialize)]
+use crate::config::AppState;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Auth {
     pub exp: i64,
-    pub username: String,
+    pub user_id: i64,
 }
 
 impl Auth {
+    #[allow(dead_code)]
     pub fn token(&self, secret: &[u8]) -> String {
-        jwt::encode(&Header::new(Algorithm::HS256), self, &EncodingKey::from_secret(secret))
-            .expect("jwt")
+        jwt::encode(
+            &Header::new(Algorithm::HS256),
+            self,
+            &EncodingKey::from_secret(secret),
+        )
+        .expect("jwt")
     }
-}
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for Auth {
-    type Error = ();
-
-    async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-        let state = request.guard::<&State<AppState>>().await.unwrap();
-
-        if let Some(auth) = extract_auth_from_request(request, &state.secret) {
-            Outcome::Success(auth)
-        } else {
-            Outcome::Failure((Status::Forbidden, ()))
-        }
-    }
-}
-
-fn extract_auth_from_request(request: &Request, secret: &[u8]) -> Option<Auth> {
-    request.headers()
-        .get_one("authorization")
-        .and_then(extract_token_from_header)
-        .and_then(|token| decode_token(token, secret))
-}
-
-fn extract_token_from_header(header: &str) -> Option<&str> {
-    if header.starts_with(config::TOKEN_PREFIX) {
-        Some(&header[config::TOKEN_PREFIX.len()..])
-    } else {
-        None
-    }
-}
-
-pub fn decode_token(token: &str, secret: &[u8]) -> Option<Auth> {
-    jwt::decode(token, &DecodingKey::from_secret(secret), &Validation::new(Algorithm::HS256))
+    #[allow(dead_code)]
+    pub fn decode(token: &str, secret: &[u8]) -> Option<Self> {
+        jwt::decode(
+            token,
+            &DecodingKey::from_secret(secret),
+            &Validation::new(Algorithm::HS256),
+        )
         .map_err(|err| {
             eprintln!("Auth decode error: {:?}", err);
-        }).ok()
+        })
+        .ok()
         .map(|token_data| token_data.claims)
+    }
+}
+
+impl FromRequest for Auth {
+    type Config = ();
+    type Error = Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self, Error>>>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        let req_cl = req.clone();
+        Box::pin(async move {
+            if let Some(token) = req_cl.headers().get(header::AUTHORIZATION) {
+                let token = token.to_str().unwrap();
+                let state = req_cl.clone().app_data::<Data<AppState>>().unwrap().clone();
+
+                Auth::decode(token, state.secret_key.as_bytes())
+                    .ok_or(ErrorUnauthorized("unauthorized"))
+            } else {
+                Err(ErrorUnauthorized("unauthorized"))
+            }
+        })
+    }
 }
