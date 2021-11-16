@@ -6,6 +6,7 @@ use actix_web::{
     middleware, web, App, HttpServer,
 };
 
+mod auth;
 mod config;
 mod db;
 mod error;
@@ -37,7 +38,9 @@ pub async fn run() -> std::io::Result<()> {
             .data(db_pool.clone())
             .service(
                 web::scope("/users")
-                    .service(routes::user::create),
+                    .service(routes::user::create)
+                    .service(routes::user::login)
+                    .service(routes::user::get_all)
             )
             .default_service(web::to(notfound_handle))
     })
