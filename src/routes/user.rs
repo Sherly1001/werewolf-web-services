@@ -1,10 +1,10 @@
-use actix_web::http::StatusCode;
+use actix_web::error::ErrorUnprocessableEntity;
 use actix_web::{post, web};
 use serde::Deserialize;
 
 use crate::config::{AppState, DbPool};
 use crate::db::user;
-use crate::error::{Res, ResBody, ResErr};
+use crate::error::{Res, ResBody};
 
 #[derive(Deserialize)]
 pub struct NewUser {
@@ -28,7 +28,7 @@ pub async fn create(pool: web::Data<DbPool>, state: web::Data<AppState>, new_use
         )
     })
     .await
-    .map_err(|e| ResErr::new_err(StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))?;
+    .map_err(|e| ErrorUnprocessableEntity(e.to_string()))?;
 
     ResBody::new("ok".to_string(), user)
 }

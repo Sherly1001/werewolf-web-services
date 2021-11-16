@@ -1,7 +1,10 @@
 #[macro_use]
 extern crate diesel;
 
-use actix_web::{http::StatusCode, middleware, web, App, HttpServer};
+use actix_web::{
+    error::ErrorBadRequest,
+    middleware, web, App, HttpServer,
+};
 
 mod config;
 mod db;
@@ -9,10 +12,10 @@ mod error;
 mod models;
 mod routes;
 mod schema;
-use error::{Res, ResErr};
+use error::Res;
 
 async fn notfound_handle() -> Res {
-    ResErr::new(StatusCode::BAD_REQUEST, "resource not found".to_string())
+    Err(ErrorBadRequest("resource not found"))
 }
 
 #[actix_web::main]
@@ -27,11 +30,15 @@ pub async fn run() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(error::ResErrWrap)
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::default())
-            .data(app_state.clone())
+            .app_data(web::Data::new(app_state.clone()))
             .data(db_pool.clone())
-            .service(web::scope("/users").service(routes::user::create))
+            .service(
+                web::scope("/users")
+                    .service(routes::user::create),
+            )
             .default_service(web::to(notfound_handle))
     })
     .bind(("0.0.0.0", config.port))?

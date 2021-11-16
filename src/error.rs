@@ -1,8 +1,19 @@
-use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use actix_web::{
+    dev::{Service, ServiceRequest, ServiceResponse, Transform},
+    http::{header, HeaderValue},
+    Error, HttpResponse,
+};
+use futures::{
+    future::{ok, Ready},
+    Future,
+};
 use serde::{Deserialize, Serialize};
 
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 #[allow(dead_code)]
-pub type Res = Result<HttpResponse, ResErr>;
+pub type Res = Result<HttpResponse, Error>;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResBody<T> {
@@ -20,42 +31,78 @@ impl<T: Serialize> ResBody<T> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ResErr {
-    stt: StatusCode,
-    body: ResBody<&'static str>,
-}
-
-impl ResErr {
-    #[allow(dead_code)]
-    pub fn new(stt: StatusCode, msg: String) -> Res {
-        Err(Self::new_err(stt, msg))
-    }
-
-    pub fn new_err(stt: StatusCode, msg: String) -> Self {
-        Self {
-            stt,
-            body: ResBody {
-                message: msg,
-                data: "",
-            },
-        }
-    }
-}
-
-impl std::fmt::Display for ResErr {
+impl<T: Serialize> std::fmt::Display for ResBody<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let dbg: &dyn std::fmt::Debug = self;
-        dbg.fmt(f)
+        write!(f, "{}", serde_json::to_string(self).unwrap())
     }
 }
 
-impl ResponseError for ResErr {
-    fn status_code(&self) -> StatusCode {
-        self.stt
+pub struct ResErrWrap;
+
+impl<S, B> Transform<S> for ResErrWrap
+where
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Request = ServiceRequest;
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type InitError = ();
+    type Transform = ResErrMiddleware<S>;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+
+    fn new_transform(&self, service: S) -> Self::Future {
+        ok(ResErrMiddleware { service })
+    }
+}
+
+pub struct ResErrMiddleware<S> {
+    service: S,
+}
+
+impl<S, B> Service for ResErrMiddleware<S>
+where
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Request = ServiceRequest;
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.service.poll_ready(cx)
     }
 
-    fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(self.status_code()).json(self.body.clone())
+    fn call(&mut self, mut req: ServiceRequest) -> Self::Future {
+        req.headers_mut().insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
+
+        let fut = self.service.call(req);
+
+        Box::pin(async move {
+            let mut res = fut.await?;
+
+            res.headers_mut().insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
+
+            if let Some(err) = res.response().error() {
+                let stt = err.as_response_error().status_code();
+                return Ok(ServiceResponse::new(
+                    res.request().clone(),
+                    HttpResponse::build(stt)
+                        .json(ResBody::new_body(err.to_string(), ""))
+                        .into_body(),
+                ));
+            }
+
+            Ok(res)
+        })
     }
 }
