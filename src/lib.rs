@@ -33,10 +33,10 @@ pub async fn run() -> std::io::Result<()> {
         let cors = actix_cors::Cors::permissive();
 
         App::new()
-            .wrap(cors)
             .wrap(error::ResErrWrap)
             .wrap(middleware::Logger::default())
             .wrap(middleware::NormalizePath::default())
+            .wrap(cors)
             .app_data(web::Data::new(app_state.clone()))
             .data(db_pool.clone())
             .service(
