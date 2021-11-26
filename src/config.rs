@@ -5,11 +5,12 @@ use snowflake::SnowflakeIdGenerator;
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 use std::env;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct AppState {
     pub secret_key: String,
-    pub id_generatator: SnowflakeIdGenerator,
+    pub id_generatator: Arc<Mutex<SnowflakeIdGenerator>>,
 }
 
 pub struct Config {
@@ -33,7 +34,7 @@ pub fn load() -> std::io::Result<Config> {
         .build(manager)
         .expect("Failed to create pool.");
 
-    let id_generatator = SnowflakeIdGenerator::new(1, 1);
+    let id_generatator = Arc::new(Mutex::new(SnowflakeIdGenerator::new(1, 1)));
 
     Ok(Config {
         port,

@@ -29,13 +29,13 @@ pub async fn create(
         return Err(ErrorUnprocessableEntity("password is empty"));
     }
 
-    let mut id_generator = state.id_generatator;
+    let id = state.id_generatator.lock().unwrap().real_time_generate();
 
     let user = web::block(move || {
         let conn = pool.get().unwrap();
         user::create(
             &conn,
-            id_generator.real_time_generate(),
+            id,
             &new_user.username,
             &new_user.passwd,
             new_user.avatar_url.as_deref(),
