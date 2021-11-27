@@ -2,7 +2,10 @@ use std::time::{Duration, Instant};
 
 use chashmap::CHashMap;
 
-use actix::{Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, ContextFutureSpawner, Handler, Message, Recipient, StreamHandler, WrapFuture};
+use actix::{
+    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, ContextFutureSpawner, Handler,
+    Message, Recipient, StreamHandler, WrapFuture,
+};
 use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext};
 
 use crate::config::{AppState, DbPool};
@@ -61,7 +64,12 @@ impl Handler<Connect> for ChatServer {
     type Result = i64;
 
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
-        let id = self.app_state.id_generatator.lock().unwrap().real_time_generate();
+        let id = self
+            .app_state
+            .id_generatator
+            .lock()
+            .unwrap()
+            .real_time_generate();
         self.clients.insert(id, msg.addr);
         id
     }

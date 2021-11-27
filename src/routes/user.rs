@@ -31,18 +31,16 @@ pub async fn create(
 
     let id = state.id_generatator.lock().unwrap().real_time_generate();
 
-    let user = web::block(move || {
-        loop {
-            match pool.get_timeout(std::time::Duration::from_secs(5)) {
-                Ok(conn) => break user::create(
-                    &conn,
-                    id,
-                    &new_user.username,
-                    &new_user.passwd,
-                    new_user.avatar_url.as_deref(),
-                ),
-                _ => continue,
-            }
+    let user = web::block(move || loop {
+        match pool.get_timeout(std::time::Duration::from_secs(5)) {
+            Ok(conn) => break user::create(
+                &conn,
+                id,
+                &new_user.username,
+                &new_user.passwd,
+                new_user.avatar_url.as_deref(),
+            ),
+            _ => continue,
         }
     })
     .await
