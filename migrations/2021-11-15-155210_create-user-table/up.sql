@@ -5,6 +5,6 @@ create table users (
     hash_passwd text not null,
     email text,
     avatar_url text,
-    win bigint default 0,
-    lose bigint default 0
+    win integer default 0,
+    lose integer default 0
 );
