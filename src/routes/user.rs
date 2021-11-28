@@ -3,7 +3,7 @@ use actix_web::{get, post, web};
 use serde::Deserialize;
 
 use crate::auth::Auth;
-use crate::config::{AppState, DbPool};
+use crate::config::{AppState, DbPool, get_conn};
 use crate::db::user;
 use crate::error::{Res, ResBody};
 use crate::models::user::UserDisplay;
@@ -31,17 +31,15 @@ pub async fn create(
 
     let id = state.id_generatator.lock().unwrap().real_time_generate();
 
-    let user = web::block(move || loop {
-        match pool.get_timeout(std::time::Duration::from_secs(5)) {
-            Ok(conn) => break user::create(
-                &conn,
-                id,
-                &new_user.username,
-                &new_user.passwd,
-                new_user.avatar_url.as_deref(),
-            ),
-            _ => continue,
-        }
+    let user = web::block(move || {
+        let conn = get_conn(pool);
+        user::create(
+            &conn,
+            id,
+            &new_user.username,
+            &new_user.passwd,
+            new_user.avatar_url.as_deref(),
+        )
     })
     .await
     .map_err(|err| {
@@ -71,7 +69,7 @@ pub async fn login(
     login_user: web::Json<LoginUser>,
 ) -> Res {
     let user = web::block(move || {
-        let conn = pool.get().unwrap();
+        let conn = get_conn(pool);
         user::login(&conn, &login_user.username, &login_user.passwd)
     })
     .await
@@ -89,7 +87,7 @@ pub async fn login(
 #[get("/")]
 pub async fn get_all(_auth: Auth, pool: web::Data<DbPool>) -> Res {
     let users = web::block(move || {
-        let conn = pool.get().unwrap();
+        let conn = get_conn(pool);
         user::get_all(&conn).map(|users| {
             users
                 .iter()

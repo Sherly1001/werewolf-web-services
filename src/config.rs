@@ -1,8 +1,19 @@
-use diesel::r2d2::{self, ConnectionManager};
+use diesel::r2d2::{self, ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 use snowflake::SnowflakeIdGenerator;
 
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
+
+pub fn get_conn(
+    pool: actix_web::web::Data<DbPool>,
+) -> PooledConnection<ConnectionManager<PgConnection>> {
+    loop {
+        match pool.get_timeout(std::time::Duration::from_secs(3)) {
+            Ok(conn) => break conn,
+            _ => continue,
+        }
+    }
+}
 
 use std::env;
 use std::sync::{Arc, Mutex};
