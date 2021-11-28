@@ -3,6 +3,7 @@ use actix_web::{
     HttpRequest,
 };
 use jsonwebtoken::{self as jwt, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use qstring::QString;
 use serde::{Deserialize, Serialize};
 
 use std::future::Future;
@@ -49,11 +50,16 @@ impl FromRequest for Auth {
 
     fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
         let req_cl = req.clone();
-        Box::pin(async move {
-            if let Some(token) = req_cl.headers().get(header::AUTHORIZATION) {
-                let token = token.to_str().unwrap();
-                let state = req_cl.clone().app_data::<Data<AppState>>().unwrap().clone();
+        let state = req.clone().app_data::<Data<AppState>>().unwrap().clone();
+        let qs = QString::from(req.clone().query_string());
 
+        Box::pin(async move {
+            if let Some(token) = req_cl
+                .headers()
+                .get(header::AUTHORIZATION)
+                .and_then(|token| token.to_str().ok())
+                .map_or(qs.get("token"), |token| Some(token))
+            {
                 Auth::decode(token, state.secret_key.as_bytes())
                     .ok_or(ErrorUnauthorized("unauthorized"))
             } else {

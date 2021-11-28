@@ -1,5 +1,6 @@
-use serde::{Serialize, Deserialize};
-use chrono::{Utc, Duration};
+use chrono::{Duration, Utc};
+use serde::{Deserialize, Serialize};
+
 use crate::auth::Auth;
 
 #[derive(Debug, Serialize, Deserialize, Queryable)]
@@ -9,8 +10,8 @@ pub struct User {
     pub hash_passwd: String,
     pub email: Option<String>,
     pub avatar_url: Option<String>,
-    pub win: Option<i64>,
-    pub lose: Option<i64>,
+    pub win: Option<i32>,
+    pub lose: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,11 +21,11 @@ pub struct UserAuth {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserDisplay {
-    pub id: i64,
+    pub id: String,
     pub username: String,
     pub avatar_url: Option<String>,
-    pub win: Option<i64>,
-    pub lose: Option<i64>,
+    pub win: Option<i32>,
+    pub lose: Option<i32>,
 }
 
 impl User {
@@ -33,16 +34,15 @@ impl User {
         let token = Auth {
             exp: exp.timestamp(),
             user_id: self.id,
-        }.token(secret);
-
-        UserAuth {
-            token,
         }
+        .token(secret);
+
+        UserAuth { token }
     }
 
     pub fn to_display_user(&self) -> UserDisplay {
         UserDisplay {
-            id: self.id,
+            id: self.id.to_string(),
             username: self.username.clone(),
             avatar_url: self.avatar_url.clone(),
             win: self.win,

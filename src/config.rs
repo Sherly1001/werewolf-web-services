@@ -1,8 +1,19 @@
-use diesel::r2d2::{self, ConnectionManager};
+use diesel::r2d2::{self, ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 use snowflake::SnowflakeIdGenerator;
 
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
+
+pub fn get_conn(
+    pool: actix_web::web::Data<DbPool>,
+) -> PooledConnection<ConnectionManager<PgConnection>> {
+    loop {
+        match pool.get_timeout(std::time::Duration::from_secs(3)) {
+            Ok(conn) => break conn,
+            _ => continue,
+        }
+    }
+}
 
 use std::env;
 use std::sync::{Arc, Mutex};
@@ -20,12 +31,21 @@ pub struct Config {
 }
 
 pub fn load() -> std::io::Result<Config> {
-    let port = env::var("PORT").unwrap_or(8080.to_string()).parse().unwrap();
+    let port = env::var("PORT")
+        .unwrap_or(8080.to_string())
+        .parse()
+        .unwrap();
     let secret_key = env::var("SECRET_KEY").expect("SECRET_KEY");
 
     let connspec = env::var("DATABASE_URL").expect("DATABASE_URL");
-    let pool_size = env::var("DATABASE_POOL_SIZE").unwrap_or(10.to_string()).parse().unwrap();
-    let timeout = env::var("DATABASE_TIMEOUT").unwrap_or(10.to_string()).parse().unwrap();
+    let pool_size = env::var("DATABASE_POOL_SIZE")
+        .unwrap_or(10.to_string())
+        .parse()
+        .unwrap();
+    let timeout = env::var("DATABASE_TIMEOUT")
+        .unwrap_or(10.to_string())
+        .parse()
+        .unwrap();
 
     let manager = ConnectionManager::<PgConnection>::new(connspec);
     let db_pool = r2d2::Pool::builder()
