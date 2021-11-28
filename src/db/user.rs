@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use crate::models::user::User;
 use crate::schema::users;
 
+use super::channel::set_pers;
+
 #[derive(Debug, Serialize, Deserialize, Insertable)]
 #[table_name = "users"]
 struct NewUser<'a> {
@@ -19,10 +21,12 @@ struct NewUser<'a> {
 pub fn create(
     conn: &PgConnection,
     id: i64,
+    rules_id: i64,
+    lobby_id: i64,
     username: &str,
     passwd: &str,
     avatar_url: Option<&str>,
-) -> Result<User, diesel::result::Error> {
+) -> QueryResult<User> {
     let hash_passwd = &scrypt_simple(passwd, &ScryptParams::new(14, 8, 1)).expect("hash error");
 
     let new_user = NewUser {
@@ -32,9 +36,14 @@ pub fn create(
         avatar_url,
     };
 
-    diesel::insert_into(users::table)
+    let user = diesel::insert_into(users::table)
         .values(new_user)
-        .get_result(conn)
+        .get_result::<User>(conn)?;
+
+    set_pers(conn, rules_id, user.id, 0, true, false)?;
+    set_pers(conn, lobby_id, user.id, 1, true, true)?;
+
+    Ok(user)
 }
 
 pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Result<User, &'static str> {
@@ -52,7 +61,7 @@ pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Result<User, 
     })
 }
 
-pub fn get_all(conn: &PgConnection) -> Result<Vec<User>, diesel::result::Error> {
+pub fn get_all(conn: &PgConnection) -> QueryResult<Vec<User>> {
     users::table.get_results::<User>(conn)
         .map(|mut users| {
             users.sort_by(|a, b| {
@@ -62,7 +71,7 @@ pub fn get_all(conn: &PgConnection) -> Result<Vec<User>, diesel::result::Error> 
         })
 }
 
-pub fn get_info(conn: &PgConnection, user_id: i64) -> Result<User, diesel::result::Error> {
+pub fn get_info(conn: &PgConnection, user_id: i64) -> QueryResult<User> {
     users::table.find(user_id)
         .get_result::<User>(conn)
 }
