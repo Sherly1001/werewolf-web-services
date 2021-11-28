@@ -99,3 +99,14 @@ pub async fn get_all(_auth: Auth, pool: web::Data<DbPool>) -> Res {
 
     ResBody::new("ok".to_string(), users)
 }
+
+#[get("/info/")]
+pub async fn get_info(auth: Auth, pool: web::Data<DbPool>) -> Res {
+    let user = web::block(move || {
+        let conn = get_conn(pool);
+        user::get_info(&conn, auth.user_id).map(|u| u.to_display_user())
+    })
+    .await?;
+
+    ResBody::new("ok".to_string(), user)
+}

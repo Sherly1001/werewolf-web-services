@@ -53,5 +53,16 @@ pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Result<User, 
 }
 
 pub fn get_all(conn: &PgConnection) -> Result<Vec<User>, diesel::result::Error> {
-    users::table.get_results(conn)
+    users::table.get_results::<User>(conn)
+        .map(|mut users| {
+            users.sort_by(|a, b| {
+                a.username.cmp(&b.username)
+            });
+            users
+        })
+}
+
+pub fn get_info(conn: &PgConnection, user_id: i64) -> Result<User, diesel::result::Error> {
+    users::table.find(user_id)
+        .get_result::<User>(conn)
 }
