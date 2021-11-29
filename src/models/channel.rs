@@ -31,3 +31,24 @@ pub struct ChannelPermission {
     pub readable: bool,
     pub sendable: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Queryable)]
+pub struct ChatMsg {
+    pub message_id: i64,
+    pub message: String,
+}
+
+impl ChatMsg {
+    pub fn to_display_msg(&self) -> DispChatMsg {
+        DispChatMsg {
+            message_id: self.message_id.to_string(),
+            message: self.message.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DispChatMsg {
+    pub message_id: String,
+    pub message: String,
+}

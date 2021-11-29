@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel::PgConnection;
 
 use crate::models::channel::ChannelPermission;
-use crate::models::channel::{Channel, ChatLine, UserChannelPermission};
+use crate::models::channel::{Channel, ChatLine, ChatMsg, UserChannelPermission};
 use crate::schema::{channels, chat_lines, user_channel_permissions as ucp};
 
 pub fn get_pers(
@@ -21,14 +21,14 @@ pub fn get_pers(
 pub fn get_all_pers(
     conn: &PgConnection,
     user_id: i64,
-) -> QueryResult<HashMap<i64, ChannelPermission>> {
+) -> QueryResult<HashMap<String, ChannelPermission>> {
     ucp::table
         .filter(ucp::user_id.eq(user_id))
         .get_results::<UserChannelPermission>(conn)
         .map(|pers| {
             let mut map = HashMap::new();
             for u in pers.iter() {
-                map.insert(u.channel_id, ChannelPermission {
+                map.insert(u.channel_id.to_string(), ChannelPermission {
                     readable: u.readable,
                     sendable: u.sendable,
                 });
@@ -98,4 +98,19 @@ pub fn send_message(
             message,
         })
         .get_result(conn)
+}
+
+pub fn get_messages(
+    conn: &PgConnection,
+    channel_id: i64,
+    offset: i64,
+    limit: i64,
+) -> QueryResult<Vec<ChatMsg>> {
+    chat_lines::table
+        .select((chat_lines::id, chat_lines::message))
+        .filter(chat_lines::channel_id.eq(channel_id))
+        .order(chat_lines::id.desc())
+        .offset(offset)
+        .limit(limit)
+        .get_results(conn)
 }

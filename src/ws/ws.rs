@@ -10,6 +10,8 @@ use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext
 
 use crate::config::{AppState, DbPool};
 
+use super::message_handler::msg_handler;
+
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Msg(pub String);
@@ -27,15 +29,16 @@ pub struct Disconnect(i64);
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ClientMsg {
-    id: i64,
+    ws_id: i64,
+    user_id: i64,
     msg: String,
 }
 
 #[derive(Clone)]
 pub struct ChatServer {
-    clients: CHashMap<i64, Recipient<Msg>>,
-    app_state: AppState,
-    db_pool: DbPool,
+    pub clients: CHashMap<i64, Recipient<Msg>>,
+    pub app_state: AppState,
+    pub db_pool: DbPool,
 }
 
 impl ChatServer {
@@ -47,11 +50,17 @@ impl ChatServer {
         }
     }
 
-    pub fn send_msg(&mut self, msg: &str, except: i64) {
+    pub fn broadcast(&mut self, msg: &str, except: i64) {
         for (id, client) in self.clients.clone() {
             if id != except {
                 client.do_send(Msg(msg.to_owned())).ok();
             }
+        }
+    }
+
+    pub fn send_to(&mut self, msg: &str, ws_id: i64) {
+        if let Some(client) = self.clients.get(&ws_id) {
+            client.do_send(Msg(msg.to_owned())).ok();
         }
     }
 }
@@ -86,18 +95,18 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<ClientMsg> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: ClientMsg, _: &mut Self::Context) -> Self::Result {
-        self.send_msg(&msg.msg, msg.id);
+    fn handle(&mut self, msg: ClientMsg, _ctx: &mut Self::Context) -> Self::Result {
+        msg_handler(self, msg.ws_id, msg.user_id, msg.msg);
     }
 }
 
 pub struct WsClient {
-    id: i64,
-    user_id: i64,
-    hb: Instant,
-    hb_interval: Duration,
-    hb_timeout: Duration,
-    addr: Addr<ChatServer>,
+    pub id: i64,
+    pub user_id: i64,
+    pub hb: Instant,
+    pub hb_interval: Duration,
+    pub hb_timeout: Duration,
+    pub addr: Addr<ChatServer>,
 }
 
 impl WsClient {
@@ -173,8 +182,9 @@ impl StreamHandler<Result<WsMessage, ProtocolError>> for WsClient {
             }
             WsMessage::Text(msg) => {
                 self.addr.do_send(ClientMsg {
-                    id: self.id,
-                    msg: format!("{}: {}", self.user_id, msg),
+                    ws_id: self.id,
+                    user_id: self.user_id,
+                    msg,
                 });
             }
             WsMessage::Binary(_) => {}
