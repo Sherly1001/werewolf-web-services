@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::auth::Auth;
 use crate::config::{AppState, DbPool, get_conn};
-use crate::db::user;
+use crate::db::{channel, user};
 use crate::error::{Res, ResBody};
 use crate::models::user::UserDisplay;
 
@@ -30,12 +30,16 @@ pub async fn create(
     }
 
     let id = state.id_generatator.lock().unwrap().real_time_generate();
+    let rules_id = state.id_generatator.lock().unwrap().real_time_generate();
+    let lobby_id = state.id_generatator.lock().unwrap().real_time_generate();
 
     let user = web::block(move || {
         let conn = get_conn(pool);
         user::create(
             &conn,
             id,
+            rules_id,
+            lobby_id,
             &new_user.username,
             &new_user.passwd,
             new_user.avatar_url.as_deref(),
@@ -109,4 +113,61 @@ pub async fn get_info(auth: Auth, pool: web::Data<DbPool>) -> Res {
     .await?;
 
     ResBody::new("ok".to_string(), user)
+}
+
+#[get("/pers/")]
+pub async fn get_pers(auth: Auth, pool: web::Data<DbPool>) -> Res {
+    let pers = web::block(move || {
+        let conn = get_conn(pool);
+        channel::get_all_pers(&conn, auth.user_id)
+    })
+    .await?;
+
+    ResBody::new("ok".to_string(), pers)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NewMsg {
+    channel_id: i64,
+    message: String,
+}
+
+#[post("/send/")]
+pub async fn send_msg(
+    auth: Auth,
+    pool: web::Data<DbPool>,
+    new_msg: web::Json<NewMsg>,
+    state: web::Data<AppState>,
+) -> Res {
+    let pcl = pool.clone();
+    let user_id = auth.user_id;
+    let channel_id = new_msg.channel_id;
+
+    let pers = web::block(move || {
+        let conn = get_conn(pcl);
+        channel::get_pers(&conn, user_id, channel_id)
+    })
+    .await?;
+
+    if !pers.readable || !pers.sendable {
+        return Err(ErrorUnauthorized(
+            "don't have permission to send message to this channel"
+        ));
+    }
+
+    let id = state.id_generatator.lock().unwrap().real_time_generate();
+
+    let msg = web::block(move || {
+        let conn = get_conn(pool);
+        channel::send_message(
+            &conn,
+            id,
+            auth.user_id,
+            new_msg.channel_id,
+            new_msg.message.clone(),
+        )
+    })
+    .await?;
+
+    ResBody::new("ok".to_string(), msg)
 }

@@ -68,6 +68,8 @@ pub async fn run() -> std::io::Result<()> {
                     .service(routes::user::login)
                     .service(routes::user::get_all)
                     .service(routes::user::get_info)
+                    .service(routes::user::get_pers)
+                    .service(routes::user::send_msg)
             )
             .service(ws_handler)
             .default_service(web::to(notfound_handle))
