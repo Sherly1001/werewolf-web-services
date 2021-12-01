@@ -58,6 +58,23 @@ pub fn cmd_handler(
             srv.send_to(&rs, ws_id);
             Ok(())
         }
+        Cmd::GetUserInfo { user_id: uid } => {
+            let uid = match uid {
+                Some(id) => id.parse::<i64>()
+                    .map_err(|err| err.to_string())?,
+                None => user_id,
+            };
+            let user = services::get_info(srv, uid)?;
+
+            srv.send_to(&Cmd::GetUserInfoRes(user).to_string(), ws_id);
+            Ok(())
+        }
+        Cmd::GetUsers => {
+            let users = services::get_users(srv)?;
+
+            srv.send_to(&Cmd::GetUsersRes(users).to_string(), ws_id);
+            Ok(())
+        }
         _ => Ok(()),
     }
 }
