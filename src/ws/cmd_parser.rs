@@ -27,6 +27,7 @@ pub enum Cmd {
         channel_id: String,
         messages: Vec<DispChatMsg>,
     },
+    Error(String),
 }
 
 impl Cmd {

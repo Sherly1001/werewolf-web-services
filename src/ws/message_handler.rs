@@ -5,7 +5,7 @@ use super::{cmd_parser::Cmd, services, ChatServer};
 pub fn msg_handler(srv: &mut ChatServer, ws_id: i64, user_id: i64, msg: String) {
     let cmd = Cmd::from_string(&msg);
     if let Err(err) = cmd {
-        return srv.send_to(&err.to_string(), ws_id);
+        return srv.send_to(&Cmd::Error(err.to_string()).to_string(), ws_id);
     }
 
     let cmd = cmd.ok().unwrap();
@@ -33,7 +33,7 @@ pub fn msg_handler(srv: &mut ChatServer, ws_id: i64, user_id: i64, msg: String) 
                     srv.send_to(&rs, ws_id);
                 }
                 Err(e) => {
-                    srv.send_to(&e, ws_id);
+                    srv.send_to(&Cmd::Error(e).to_string(), ws_id);
                 }
             }
         }
@@ -58,7 +58,7 @@ pub fn msg_handler(srv: &mut ChatServer, ws_id: i64, user_id: i64, msg: String) 
                     srv.send_to(&rs, ws_id);
                 }
                 Err(e) => {
-                    srv.send_to(&e, ws_id);
+                    srv.send_to(&Cmd::Error(e).to_string(), ws_id);
                 }
             }
         }
