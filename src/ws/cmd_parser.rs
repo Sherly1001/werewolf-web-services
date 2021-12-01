@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 
-use crate::models::channel::DispChatMsg;
+use crate::models::{channel::DispChatMsg, user::UserDisplay};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Cmd {
@@ -27,6 +27,13 @@ pub enum Cmd {
         channel_id: String,
         messages: Vec<DispChatMsg>,
     },
+    GetUserInfo {
+        user_id: Option<String>,
+    },
+    GetUserInfoRes(UserDisplay),
+    GetUsers,
+    GetUsersRes(Vec<UserDisplay>),
+    Error(String),
 }
 
 impl Cmd {
