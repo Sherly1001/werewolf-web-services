@@ -43,8 +43,8 @@ pub fn cmd_handler(
             let messages = services::get_msg(
                 srv,
                 channel_id.parse::<i64>().map_err(|err| err.to_string())?,
-                offset as i64,
-                limit as i64,
+                offset.unwrap_or(0) as i64,
+                limit.unwrap_or(50) as i64,
             )?;
             let rs = Cmd::GetMsgRes {
                 channel_id,
@@ -54,11 +54,10 @@ pub fn cmd_handler(
             srv.send_to(&rs, ws_id);
         }
         Cmd::GetUserInfo { user_id: uid } => {
-            let uid = match uid {
-                Some(id) => id.parse::<i64>()
-                    .map_err(|err| err.to_string())?,
-                None => user_id,
-            };
+            let uid = uid
+                .map(|id| id.parse::<i64>().map_err(|err| err.to_string()))
+                .transpose()?
+                .unwrap_or(user_id);
             let user = services::get_info(srv, uid)?;
 
             srv.send_to(&Cmd::GetUserInfoRes(user), ws_id);
@@ -67,6 +66,14 @@ pub fn cmd_handler(
             let users = services::get_users(srv)?;
 
             srv.send_to(&Cmd::GetUsersRes(users), ws_id);
+        }
+        Cmd::GetPers { channel_id } => {
+            let channel_id = channel_id
+                .map(|id| id.parse::<i64>().map_err(|err| err.to_string()))
+                .transpose()?;
+            let pers = services::get_pers(srv, user_id, channel_id)?;
+
+            srv.send_to(&Cmd::GetPersRes(pers), ws_id);
         }
         _ => {}
     };
