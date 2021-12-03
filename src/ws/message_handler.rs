@@ -4,7 +4,7 @@ pub fn msg_handler(srv: &mut ChatServer, ws_id: i64, user_id: i64, msg: String) 
     Cmd::from_string(&msg)
         .map_err(|err| err.to_string())
         .and_then(|cmd| cmd_handler(srv, ws_id, user_id, cmd))
-        .map_err(|err| srv.send_to(&Cmd::Error(err).to_string(), ws_id))
+        .map_err(|err| srv.send_to(&Cmd::Error(err), ws_id))
         .ok();
 }
 
@@ -27,12 +27,10 @@ pub fn cmd_handler(
                 channel_id: channel_id.to_string(),
                 message_id: chat.id.to_string(),
                 message: chat.message,
-            }
-            .to_string();
+            };
             let rs = Cmd::SendRes {
                 message_id: chat.id.to_string(),
-            }
-            .to_string();
+            };
 
             srv.broadcast(&bc, ws_id);
             srv.send_to(&rs, ws_id);
@@ -51,8 +49,7 @@ pub fn cmd_handler(
             let rs = Cmd::GetMsgRes {
                 channel_id,
                 messages,
-            }
-            .to_string();
+            };
 
             srv.send_to(&rs, ws_id);
         }
@@ -64,12 +61,12 @@ pub fn cmd_handler(
             };
             let user = services::get_info(srv, uid)?;
 
-            srv.send_to(&Cmd::GetUserInfoRes(user).to_string(), ws_id);
+            srv.send_to(&Cmd::GetUserInfoRes(user), ws_id);
         }
         Cmd::GetUsers => {
             let users = services::get_users(srv)?;
 
-            srv.send_to(&Cmd::GetUsersRes(users).to_string(), ws_id);
+            srv.send_to(&Cmd::GetUsersRes(users), ws_id);
         }
         _ => {}
     };

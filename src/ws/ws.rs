@@ -10,7 +10,7 @@ use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext
 
 use crate::config::{AppState, DbPool};
 
-use super::message_handler::msg_handler;
+use super::{message_handler::msg_handler, cmd_parser::Cmd};
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -50,17 +50,17 @@ impl ChatServer {
         }
     }
 
-    pub fn broadcast(&mut self, msg: &str, except: i64) {
+    pub fn broadcast(&mut self, cmd: &Cmd, except: i64) {
         for (id, client) in self.clients.clone() {
             if id != except {
-                client.do_send(Msg(msg.to_owned())).ok();
+                client.do_send(Msg(cmd.to_string())).ok();
             }
         }
     }
 
-    pub fn send_to(&mut self, msg: &str, ws_id: i64) {
+    pub fn send_to(&mut self, cmd: &Cmd, ws_id: i64) {
         if let Some(client) = self.clients.get(&ws_id) {
-            client.do_send(Msg(msg.to_owned())).ok();
+            client.do_send(Msg(cmd.to_string())).ok();
         }
     }
 }
