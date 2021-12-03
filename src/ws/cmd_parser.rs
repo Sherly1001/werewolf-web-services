@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 
-use crate::models::{channel::DispChatMsg, user::UserDisplay};
+use crate::models::channel::{DispChatMsg, ChannelPermission};
+use crate::models::user::UserDisplay;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Cmd {
@@ -20,8 +23,8 @@ pub enum Cmd {
     },
     GetMsg {
         channel_id: String,
-        offset: usize,
-        limit: usize,
+        offset: Option<usize>,
+        limit: Option<usize>,
     },
     GetMsgRes {
         channel_id: String,
@@ -33,6 +36,10 @@ pub enum Cmd {
     GetUserInfoRes(UserDisplay),
     GetUsers,
     GetUsersRes(Vec<UserDisplay>),
+    GetPers {
+        channel_id: Option<String>,
+    },
+    GetPersRes(HashMap<String, ChannelPermission>),
     Error(String),
 }
 

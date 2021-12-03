@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use diesel::{PgConnection, r2d2::{ConnectionManager, PooledConnection}};
 
 use crate::db;
 use crate::config::DbPool;
-use crate::models::channel::{ChatLine, DispChatMsg};
+use crate::models::channel::{ChatLine, DispChatMsg, ChannelPermission};
 use crate::models::user::UserDisplay;
 
 use super::ChatServer;
@@ -60,6 +62,31 @@ pub fn get_users(srv: &mut ChatServer) -> Result<Vec<UserDisplay>, String> {
         .map_err(|err| err.to_string())
 }
 
+
+pub fn get_pers(
+    srv: &mut ChatServer,
+    user_id: i64,
+    channel_id: Option<i64>,
+) -> Result<HashMap<String, ChannelPermission>, String> {
+    let conn = get_conn(srv.db_pool.clone());
+
+    if let None = channel_id {
+        return db::channel::get_all_pers(&conn, user_id)
+            .map_err(|err| err.to_string())
+    }
+
+    let channel_id = channel_id.unwrap();
+    db::channel::get_pers(&conn, user_id, channel_id)
+        .map_err(|err| err.to_string())
+        .map(|per| {
+            let mut hash = HashMap::new();
+            hash.insert(per.channel_id.to_string(), ChannelPermission {
+                readable: per.readable,
+                sendable: per.sendable,
+            });
+            hash
+        })
+}
 
 fn get_conn(pool: DbPool) -> PooledConnection<ConnectionManager<PgConnection>> {
     loop {
