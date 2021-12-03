@@ -107,7 +107,7 @@ pub fn get_messages(
     limit: i64,
 ) -> QueryResult<Vec<ChatMsg>> {
     chat_lines::table
-        .select((chat_lines::id, chat_lines::message))
+        .select((chat_lines::id, chat_lines::user_id, chat_lines::message))
         .filter(chat_lines::channel_id.eq(channel_id))
         .order(chat_lines::id.desc())
         .offset(offset)
