@@ -37,7 +37,7 @@ pub fn create(
     };
 
     let user = diesel::insert_into(users::table)
-        .values(new_user)
+        .values(&new_user)
         .get_result::<User>(conn)?;
 
     set_pers(conn, rules_id, user.id, 0, true, false)?;

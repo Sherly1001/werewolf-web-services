@@ -47,7 +47,7 @@ pub fn set_pers(
     sendable: bool,
 ) -> QueryResult<usize> {
     diesel::insert_into(ucp::table)
-        .values(UserChannelPermission {
+        .values(&UserChannelPermission {
             id,
             user_id,
             channel_id,
@@ -67,7 +67,7 @@ pub fn create_channel(
     channel_name: String,
 ) -> QueryResult<Channel> {
     diesel::insert_into(channels::table)
-        .values(Channel {
+        .values(&Channel {
             id,
             channel_name,
         })
@@ -82,7 +82,7 @@ pub fn send_message(
     message: String,
 ) -> QueryResult<ChatLine> {
     diesel::insert_into(chat_lines::table)
-        .values(ChatLine {
+        .values(&ChatLine {
             id,
             user_id,
             channel_id,
