@@ -24,6 +24,7 @@ pub fn get_all_pers(
 ) -> QueryResult<HashMap<String, ChannelPermission>> {
     ucp::table
         .filter(ucp::user_id.eq(user_id))
+        .filter(ucp::readable.eq(true))
         .get_results::<UserChannelPermission>(conn)
         .map(|pers| {
             let mut map = HashMap::new();
