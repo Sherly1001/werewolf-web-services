@@ -40,6 +40,8 @@ pub enum Cmd {
         channel_id: Option<String>,
     },
     GetPersRes(HashMap<String, ChannelPermission>),
+    UserOnline(UserDisplay),
+    UserOffline(UserDisplay),
     Error(String),
 }
 

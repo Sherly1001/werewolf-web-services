@@ -24,6 +24,7 @@ pub fn get_all_pers(
 ) -> QueryResult<HashMap<String, ChannelPermission>> {
     ucp::table
         .filter(ucp::user_id.eq(user_id))
+        .filter(ucp::readable.eq(true))
         .get_results::<UserChannelPermission>(conn)
         .map(|pers| {
             let mut map = HashMap::new();
@@ -45,28 +46,18 @@ pub fn set_pers(
     readable: bool,
     sendable: bool,
 ) -> QueryResult<usize> {
-    match get_pers(conn, user_id, channel_id) {
-        Ok(pers) => {
-            let pers = ucp::table.find(pers.id);
-            diesel::update(pers)
-                .set((
-                    ucp::readable.eq(readable),
-                    ucp::sendable.eq(sendable),
-                ))
-                .execute(conn)
-        }
-        Err(_) => {
-            diesel::insert_into(ucp::table)
-                .values(UserChannelPermission {
-                    id,
-                    user_id,
-                    channel_id,
-                    readable,
-                    sendable,
-                })
-                .execute(conn)
-        }
-    }
+    diesel::insert_into(ucp::table)
+        .values(&UserChannelPermission {
+            id,
+            user_id,
+            channel_id,
+            readable,
+            sendable,
+        })
+        .on_conflict((ucp::user_id, ucp::channel_id))
+        .do_update()
+        .set((ucp::readable.eq(readable), ucp::sendable.eq(sendable)))
+        .execute(conn)
 }
 
 #[allow(dead_code)]
@@ -76,7 +67,7 @@ pub fn create_channel(
     channel_name: String,
 ) -> QueryResult<Channel> {
     diesel::insert_into(channels::table)
-        .values(Channel {
+        .values(&Channel {
             id,
             channel_name,
         })
@@ -91,7 +82,7 @@ pub fn send_message(
     message: String,
 ) -> QueryResult<ChatLine> {
     diesel::insert_into(chat_lines::table)
-        .values(ChatLine {
+        .values(&ChatLine {
             id,
             user_id,
             channel_id,
