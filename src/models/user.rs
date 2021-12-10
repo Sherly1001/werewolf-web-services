@@ -26,6 +26,7 @@ pub struct UserDisplay {
     pub avatar_url: Option<String>,
     pub win: Option<i32>,
     pub lose: Option<i32>,
+    pub is_online: Option<bool>,
 }
 
 impl User {
@@ -47,6 +48,7 @@ impl User {
             avatar_url: self.avatar_url.clone(),
             win: self.win,
             lose: self.lose,
+            is_online: None,
         }
     }
 }
