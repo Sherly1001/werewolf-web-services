@@ -11,7 +11,7 @@ use super::ChatServer;
 
 
 pub fn send_msg(
-    srv: &mut ChatServer,
+    srv: &ChatServer,
     user_id: i64,
     channel_id: i64,
     message: String,
@@ -33,7 +33,7 @@ pub fn send_msg(
 }
 
 pub fn get_msg(
-    srv: &mut ChatServer,
+    srv: &ChatServer,
     channel_id: i64,
     offset: i64,
     limit: i64,
@@ -46,7 +46,7 @@ pub fn get_msg(
 
 
 pub fn get_info(
-    srv: &mut ChatServer,
+    srv: &ChatServer,
     user_id: i64,
 ) -> Result<UserDisplay, String> {
     let conn = get_conn(srv.db_pool.clone());
@@ -55,7 +55,7 @@ pub fn get_info(
         .map_err(|err| err.to_string())
 }
 
-pub fn get_users(srv: &mut ChatServer) -> Result<Vec<UserDisplay>, String> {
+pub fn get_users(srv: &ChatServer) -> Result<Vec<UserDisplay>, String> {
     let conn = get_conn(srv.db_pool.clone());
     db::user::get_all(&conn)
         .map(|u| u.iter().map(|u| u.to_display_user()).collect())
@@ -64,7 +64,7 @@ pub fn get_users(srv: &mut ChatServer) -> Result<Vec<UserDisplay>, String> {
 
 
 pub fn get_pers(
-    srv: &mut ChatServer,
+    srv: &ChatServer,
     user_id: i64,
     channel_id: Option<i64>,
 ) -> Result<HashMap<String, ChannelPermission>, String> {

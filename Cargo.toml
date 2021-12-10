@@ -19,7 +19,6 @@ rs-snowflake = "0.5.0"
 jsonwebtoken = "7.2.0"
 rust-crypto = "0.2.36"
 chrono = "0.4.19"
-chashmap = "2.2.2"
 qstring = "0.7.2"
 
 [dependencies.diesel]
