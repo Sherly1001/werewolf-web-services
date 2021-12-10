@@ -63,7 +63,11 @@ pub fn cmd_handler(
             srv.send_to(&Cmd::GetUserInfoRes(user), ws_id);
         }
         Cmd::GetUsers => {
-            let users = services::get_users(srv)?;
+            let mut users = services::get_users(srv)?;
+
+            for u in users.iter_mut() {
+                u.is_online = Some(srv.users.contains_key(&u.id.parse().unwrap()));
+            }
 
             srv.send_to(&Cmd::GetUsersRes(users), ws_id);
         }
