@@ -21,6 +21,8 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 pub struct AppState {
     pub secret_key: String,
+    pub bot_prefix: String,
+    pub bot_id: i64,
     pub id_generatator: Arc<Mutex<SnowflakeIdGenerator>>,
 }
 
@@ -36,6 +38,8 @@ pub fn load() -> std::io::Result<Config> {
         .parse()
         .unwrap();
     let secret_key = env::var("SECRET_KEY").expect("SECRET_KEY");
+    let bot_prefix = env::var("BOT_PREFIX").unwrap_or("!".to_string());
+    let bot_id = env::var("BOT_ID").expect("BOT_ID").parse().unwrap();
 
     let connspec = env::var("DATABASE_URL").expect("DATABASE_URL");
     let pool_size = env::var("DATABASE_POOL_SIZE")
@@ -60,6 +64,8 @@ pub fn load() -> std::io::Result<Config> {
         port,
         app_state: AppState {
             secret_key,
+            bot_prefix,
+            bot_id,
             id_generatator,
         },
         db_pool,
