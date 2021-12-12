@@ -26,8 +26,18 @@ pub struct UserChannelPermission {
     pub sendable: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize, Queryable)]
+pub struct UserChannelPermissionDisplay {
+    pub user_id: i64,
+    pub channel_id: i64,
+    pub channel_name: String,
+    pub readable: bool,
+    pub sendable: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChannelPermission {
+    pub channel_name: String,
     pub readable: bool,
     pub sendable: bool,
 }

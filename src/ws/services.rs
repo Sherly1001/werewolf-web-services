@@ -81,6 +81,7 @@ pub fn get_pers(
         .map(|per| {
             let mut hash = HashMap::new();
             hash.insert(per.channel_id.to_string(), ChannelPermission {
+                channel_name: per.channel_name,
                 readable: per.readable,
                 sendable: per.sendable,
             });

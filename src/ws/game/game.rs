@@ -116,6 +116,14 @@ impl Game {
         let conn = get_conn(self.db_pool.clone());
         db::game::remove_user(&conn, self.id, user_id).unwrap();
 
+        let mut id_lock = self.id_gen.lock().unwrap();
+        for (_, &channel_id) in self.channels.iter() {
+            db::channel::set_pers(
+                &conn, id_lock.real_time_generate(),
+                user_id, channel_id, false, false,
+            ).unwrap();
+        }
+
         self.users.remove(&user_id);
     }
 
