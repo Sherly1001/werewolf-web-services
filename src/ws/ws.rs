@@ -192,6 +192,7 @@ impl Handler<Disconnect> for ChatServer {
         if let Some(ws) = self.users.get_mut(&msg.user_id) {
             ws.retain(|&id| id != msg.ws_id);
             if ws.is_empty() {
+                self.users.remove(&msg.user_id);
                 self.user_offline(msg.user_id);
             }
         }
