@@ -10,7 +10,13 @@ use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext
 
 use crate::config::{AppState, DbPool};
 
-use super::{message_handler::msg_handler, cmd_parser::Cmd, services};
+use super::game::cmds::UpdatePers;
+use super::{
+    message_handler::msg_handler,
+    cmd_parser::Cmd,
+    game::{Game, cmds::{BotMsg, GameMsg, StartGame, StopGame}},
+    services,
+};
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
@@ -38,10 +44,11 @@ pub struct ClientMsg {
     msg: String,
 }
 
-#[derive(Clone)]
 pub struct ChatServer {
     pub clients: HashMap<i64, Recipient<Msg>>,
     pub users: HashMap<i64, Vec<i64>>,
+    pub games: HashMap<i64, Addr<Game>>,
+    pub current_game: Option<i64>,
     pub app_state: AppState,
     pub db_pool: DbPool,
 }
@@ -51,6 +58,8 @@ impl ChatServer {
         Self {
             clients: HashMap::new(),
             users: HashMap::new(),
+            games: HashMap::new(),
+            current_game: None,
             app_state,
             db_pool,
         }
@@ -80,6 +89,16 @@ impl ChatServer {
         }
     }
 
+    pub fn send_to_user(&self, cmd: &Cmd, user_id: i64) {
+        if let Some(ws) = self.users.get(&user_id) {
+            for (ws_id, client) in self.clients.iter() {
+                if ws.contains(ws_id) {
+                    client.do_send(Msg(cmd.to_string())).ok();
+                }
+            }
+        }
+    }
+
     pub fn user_online(&self, user_id: i64) {
         if let Ok(u) = services::get_info(self, user_id) {
             self.broadcast_user(&Cmd::UserOnline(u), user_id);
@@ -90,6 +109,47 @@ impl ChatServer {
         if let Ok(u) = services::get_info(self, user_id) {
             self.broadcast_user(&Cmd::UserOffline(u), user_id);
         }
+    }
+
+    pub fn bot_send(&self, channel_id: i64, message: String) {
+        let bot_id = self.app_state.bot_id;
+        let chat = services::send_msg(self, bot_id, channel_id, message)
+            .unwrap();
+        let bc = Cmd::BroadCastMsg {
+            user_id: bot_id.to_string(),
+            message_id: chat.channel_id.to_string(),
+            channel_id: chat.channel_id.to_string(),
+            message: chat.message,
+        };
+        self.broadcast(&bc, -1);
+    }
+
+    pub fn update_pers(&self, user_id: i64) {
+        let pers = services::get_pers(self, user_id, None).unwrap();
+        self.send_to_user(&Cmd::GetPersRes(pers), user_id);
+    }
+
+    pub fn new_game(&mut self, ctx: &mut Context<Self>) -> i64 {
+        let game_id = self .app_state
+            .id_generatator
+            .lock()
+            .unwrap()
+            .real_time_generate();
+
+        let game = Game::new(
+                game_id,
+                ctx.address(),
+                self.db_pool.clone(),
+                self.app_state.id_generatator.clone(),
+            ).start();
+        self.games.insert(game_id, game);
+
+        game_id
+    }
+
+    pub fn get_user_game(&self, user_id: i64) -> Option<&Addr<Game>> {
+        let game_id = services::get_game_from_user(self, user_id)?;
+        self.games.get(&game_id)
     }
 }
 
@@ -141,8 +201,48 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<ClientMsg> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: ClientMsg, _ctx: &mut Self::Context) -> Self::Result {
-        msg_handler(self, msg.ws_id, msg.user_id, msg.msg);
+    fn handle(&mut self, msg: ClientMsg, ctx: &mut Self::Context) -> Self::Result {
+        msg_handler(self, ctx, msg.ws_id, msg.user_id, msg.msg);
+    }
+}
+
+impl Handler<BotMsg> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: BotMsg, _: &mut Self::Context) -> Self::Result {
+        self.bot_send(msg.channel_id, msg.msg);
+    }
+}
+
+impl Handler<GameMsg> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, _msg: GameMsg, _ctx: &mut Self::Context) -> Self::Result {
+    }
+}
+
+impl Handler<StartGame> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, _msg: StartGame, _ctx: &mut Self::Context) -> Self::Result {
+        self.current_game = None;
+    }
+}
+
+impl Handler<StopGame> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: StopGame, _: &mut Self::Context) -> Self::Result {
+        self.games.remove(&msg.0);
+        self.current_game = None;
+    }
+}
+
+impl Handler<UpdatePers> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: UpdatePers, _: &mut Self::Context) -> Self::Result {
+        self.update_pers(msg.0);
     }
 }
 

@@ -3,16 +3,20 @@ use std::collections::HashMap;
 use diesel::prelude::*;
 use diesel::PgConnection;
 
-use crate::models::channel::ChannelPermission;
-use crate::models::channel::{Channel, ChatLine, ChatMsg, UserChannelPermission};
+use crate::models::channel::{
+    Channel, ChatLine, ChatMsg, ChannelPermission,
+    UserChannelPermission, UserChannelPermissionDisplay,
+};
 use crate::schema::{channels, chat_lines, user_channel_permissions as ucp};
 
 pub fn get_pers(
     conn: &PgConnection,
     user_id: i64,
     channel_id: i64,
-) -> QueryResult<UserChannelPermission> {
+) -> QueryResult<UserChannelPermissionDisplay> {
     ucp::table
+        .inner_join(channels::table)
+        .select((ucp::user_id, ucp::channel_id, channels::channel_name, ucp::readable, ucp::sendable))
         .filter(ucp::user_id.eq(user_id))
         .filter(ucp::channel_id.eq(channel_id))
         .get_result(conn)
@@ -23,13 +27,16 @@ pub fn get_all_pers(
     user_id: i64,
 ) -> QueryResult<HashMap<String, ChannelPermission>> {
     ucp::table
+        .inner_join(channels::table)
+        .select((ucp::user_id, ucp::channel_id, channels::channel_name, ucp::readable, ucp::sendable))
         .filter(ucp::user_id.eq(user_id))
         .filter(ucp::readable.eq(true))
-        .get_results::<UserChannelPermission>(conn)
+        .get_results::<UserChannelPermissionDisplay>(conn)
         .map(|pers| {
             let mut map = HashMap::new();
             for u in pers.iter() {
                 map.insert(u.channel_id.to_string(), ChannelPermission {
+                    channel_name: u.channel_name.clone(),
                     readable: u.readable,
                     sendable: u.sendable,
                 });

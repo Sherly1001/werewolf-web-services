@@ -81,11 +81,22 @@ pub fn get_pers(
         .map(|per| {
             let mut hash = HashMap::new();
             hash.insert(per.channel_id.to_string(), ChannelPermission {
+                channel_name: per.channel_name,
                 readable: per.readable,
                 sendable: per.sendable,
             });
             hash
         })
+}
+
+pub fn get_game_from_user(
+    srv: &ChatServer,
+    user_id: i64,
+) -> Option<i64> {
+    let conn = get_conn(srv.db_pool.clone());
+    db::game::get_from_user(&conn, user_id)
+        .map(|g| g.id)
+        .ok()
 }
 
 fn get_conn(pool: DbPool) -> PooledConnection<ConnectionManager<PgConnection>> {
