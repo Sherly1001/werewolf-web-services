@@ -1,6 +1,6 @@
 use actix::Context;
 
-use crate::ws::game_cmds;
+use crate::ws::game::cmds as game_cmds;
 
 use super::{cmd_parser::Cmd, services, ChatServer};
 

@@ -10,7 +10,12 @@ use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext
 
 use crate::config::{AppState, DbPool};
 
-use super::{message_handler::msg_handler, cmd_parser::Cmd, game_cmds::Game, services};
+use super::{
+    message_handler::msg_handler,
+    cmd_parser::Cmd,
+    game::{Game, cmds::{StopGame, BotMsg}},
+    services,
+};
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
@@ -37,17 +42,6 @@ pub struct ClientMsg {
     user_id: i64,
     msg: String,
 }
-
-#[derive(Message, Debug)]
-#[rtype(result = "()")]
-pub struct BotMsg {
-    pub channel_id: i64,
-    pub msg: String,
-}
-
-#[derive(Message, Debug)]
-#[rtype(result = "()")]
-pub struct StopGame(pub i64);
 
 pub struct ChatServer {
     pub clients: HashMap<i64, Recipient<Msg>>,
