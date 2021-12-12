@@ -28,7 +28,23 @@ pub struct BotMsg {
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
+pub struct GameMsg {
+    pub game_id: i64,
+    pub channel_id: i64,
+    pub msg: String,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
 pub struct StopGame(pub i64);
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct StartGame(pub i64);
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct UpdatePers(pub i64);
 
 impl Game {
     pub fn must_in_game(&self, user_id: i64) -> bool {
@@ -62,6 +78,7 @@ impl Handler<Join> for Game {
         }
 
         self.add_user(msg.0);
+        self.addr.do_send(UpdatePers(msg.0));
         self.addr.do_send(BotMsg {
             channel_id: 1,
             msg: ttp::user_join(msg.0, self.users.len()),
@@ -77,6 +94,7 @@ impl Handler<Leave> for Game {
 
         self.remove_user(msg.0);
 
+        self.addr.do_send(UpdatePers(msg.0));
         self.addr.do_send(BotMsg {
             channel_id: 1,
             msg: ttp::user_leave(msg.0, self.users.len()),
@@ -89,6 +107,13 @@ impl Handler<Start> for Game {
 
     fn handle(&mut self, msg: Start, _: &mut Self::Context) -> Self::Result {
         if !self.must_in_game(msg.0) { return }
+
+        if self.is_started {
+            return self.addr.do_send(BotMsg {
+                channel_id: 1,
+                msg: ttp::game_is_started(),
+            })
+        }
 
         if self.users.len() < 4 {
             return self.addr.do_send(BotMsg {
@@ -109,10 +134,15 @@ impl Handler<Start> for Game {
         }
 
         self.start();
+        self.addr.do_send(StartGame(self.id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
             msg: ttp::start_game(),
         });
+
+        for &user in self.users.iter() {
+            self.addr.do_send(UpdatePers(user));
+        }
     }
 }
 
@@ -139,5 +169,9 @@ impl Handler<Stop> for Game {
             channel_id: 1,
             msg: ttp::stop_game(),
         });
+
+        for &user in self.users.iter() {
+            self.addr.do_send(UpdatePers(user));
+        }
     }
 }

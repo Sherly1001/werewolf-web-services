@@ -1,6 +1,6 @@
 use actix::Context;
 
-use crate::ws::game::cmds as game_cmds;
+use crate::ws::game::{cmds as game_cmds, text_templates as ttp};
 
 use super::{cmd_parser::Cmd, services, ChatServer};
 
@@ -118,11 +118,15 @@ fn game_commands(
 
     match cmds[0] {
         "join" => {
+            if let Some(_) = srv.get_user_game(user_id) {
+                srv.bot_send(channel_id, ttp::in_other_game());
+                return Ok(());
+            }
             match srv.current_game {
                 Some(game_id) => {
                     let game = srv.games.get(&game_id).unwrap();
                     game.do_send(game_cmds::Join(user_id));
-                },
+                }
                 None => {
                     let game_id = srv.new_game(ctx);
                     srv.current_game = Some(game_id);
@@ -132,33 +136,32 @@ fn game_commands(
             }
         }
         "leave" => {
-            match srv.current_game {
-                Some(game_id) => {
-                    let game = srv.games.get(&game_id).unwrap();
-                    game.do_send(game_cmds::Leave(user_id));
-                },
-                None => {
-                }
+            if let Some(game) = srv.get_user_game(user_id) {
+                game.do_send(game_cmds::Leave(user_id));
+            } else {
+                srv.bot_send(channel_id, ttp::not_in_game());
             }
         }
         "start" => {
+            if let Some(game) = srv.get_user_game(user_id) {
+                game.do_send(game_cmds::Start(user_id));
+                return Ok(());
+            }
             match srv.current_game {
                 Some(game_id) => {
                     let game = srv.games.get(&game_id).unwrap();
                     game.do_send(game_cmds::Start(user_id));
-                },
+                }
                 None => {
+                    srv.bot_send(channel_id, ttp::not_in_game());
                 }
             }
         }
         "stop" => {
-            match srv.current_game {
-                Some(game_id) => {
-                    let game = srv.games.get(&game_id).unwrap();
-                    game.do_send(game_cmds::Stop(user_id));
-                },
-                None => {
-                }
+            if let Some(game) = srv.get_user_game(user_id) {
+                game.do_send(game_cmds::Stop(user_id));
+            } else {
+                srv.bot_send(channel_id, ttp::not_in_game());
             }
         }
         _ => {}

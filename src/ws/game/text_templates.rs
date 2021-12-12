@@ -2,6 +2,14 @@ pub fn not_in_game() -> String {
     format!("Bạn đang không ở trong game.")
 }
 
+pub fn in_other_game() -> String {
+    format!("Bạn đang trong trò chơi khác.")
+}
+
+pub fn game_is_started() -> String {
+    format!("Trò chơi đã bắt đầu rồi.")
+}
+
 pub fn aready_in_game() -> String {
     format!("Bạn đã tham gia trò chơi rồi, hãy đợi trò chơi bắt đầu.")
 }

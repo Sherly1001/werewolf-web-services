@@ -88,6 +88,16 @@ pub fn get_pers(
         })
 }
 
+pub fn get_game_from_user(
+    srv: &ChatServer,
+    user_id: i64,
+) -> Option<i64> {
+    let conn = get_conn(srv.db_pool.clone());
+    db::game::get_from_user(&conn, user_id)
+        .map(|g| g.id)
+        .ok()
+}
+
 fn get_conn(pool: DbPool) -> PooledConnection<ConnectionManager<PgConnection>> {
     loop {
         match pool.get_timeout(std::time::Duration::from_secs(3)) {

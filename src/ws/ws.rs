@@ -10,10 +10,11 @@ use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext
 
 use crate::config::{AppState, DbPool};
 
+use super::game::cmds::UpdatePers;
 use super::{
     message_handler::msg_handler,
     cmd_parser::Cmd,
-    game::{Game, cmds::{StopGame, BotMsg}},
+    game::{Game, cmds::{BotMsg, GameMsg, StartGame, StopGame}},
     services,
 };
 
@@ -88,6 +89,16 @@ impl ChatServer {
         }
     }
 
+    pub fn send_to_user(&self, cmd: &Cmd, user_id: i64) {
+        if let Some(ws) = self.users.get(&user_id) {
+            for (ws_id, client) in self.clients.iter() {
+                if ws.contains(ws_id) {
+                    client.do_send(Msg(cmd.to_string())).ok();
+                }
+            }
+        }
+    }
+
     pub fn user_online(&self, user_id: i64) {
         if let Ok(u) = services::get_info(self, user_id) {
             self.broadcast_user(&Cmd::UserOnline(u), user_id);
@@ -98,6 +109,24 @@ impl ChatServer {
         if let Ok(u) = services::get_info(self, user_id) {
             self.broadcast_user(&Cmd::UserOffline(u), user_id);
         }
+    }
+
+    pub fn bot_send(&self, channel_id: i64, message: String) {
+        let bot_id = self.app_state.bot_id;
+        let chat = services::send_msg(self, bot_id, channel_id, message)
+            .unwrap();
+        let bc = Cmd::BroadCastMsg {
+            user_id: bot_id.to_string(),
+            message_id: chat.channel_id.to_string(),
+            channel_id: chat.channel_id.to_string(),
+            message: chat.message,
+        };
+        self.broadcast(&bc, -1);
+    }
+
+    pub fn update_pers(&self, user_id: i64) {
+        let pers = services::get_pers(self, user_id, None).unwrap();
+        self.send_to_user(&Cmd::GetPersRes(pers), user_id);
     }
 
     pub fn new_game(&mut self, ctx: &mut Context<Self>) -> i64 {
@@ -116,6 +145,11 @@ impl ChatServer {
         self.games.insert(game_id, game);
 
         game_id
+    }
+
+    pub fn get_user_game(&self, user_id: i64) -> Option<&Addr<Game>> {
+        let game_id = services::get_game_from_user(self, user_id)?;
+        self.games.get(&game_id)
     }
 }
 
@@ -176,15 +210,22 @@ impl Handler<BotMsg> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: BotMsg, _: &mut Self::Context) -> Self::Result {
-        let bot_id = self.app_state.bot_id;
-        let chat = services::send_msg(self, bot_id, msg.channel_id, msg.msg).unwrap();
-        let bc = Cmd::BroadCastMsg {
-            user_id: bot_id.to_string(),
-            message_id: chat.channel_id.to_string(),
-            channel_id: chat.channel_id.to_string(),
-            message: chat.message,
-        };
-        self.broadcast(&bc, -1);
+        self.bot_send(msg.channel_id, msg.msg);
+    }
+}
+
+impl Handler<GameMsg> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, _msg: GameMsg, _ctx: &mut Self::Context) -> Self::Result {
+    }
+}
+
+impl Handler<StartGame> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, _msg: StartGame, _ctx: &mut Self::Context) -> Self::Result {
+        self.current_game = None;
     }
 }
 
@@ -194,6 +235,14 @@ impl Handler<StopGame> for ChatServer {
     fn handle(&mut self, msg: StopGame, _: &mut Self::Context) -> Self::Result {
         self.games.remove(&msg.0);
         self.current_game = None;
+    }
+}
+
+impl Handler<UpdatePers> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: UpdatePers, _: &mut Self::Context) -> Self::Result {
+        self.update_pers(msg.0);
     }
 }
 

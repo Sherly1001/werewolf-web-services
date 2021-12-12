@@ -21,6 +21,20 @@ pub fn create(
         .get_result(conn)
 }
 
+pub fn delete(
+    conn: &PgConnection,
+    id: i64,
+) -> QueryResult<usize> {
+    let channels = game_channels::table
+        .filter(game_channels::game_id.eq(id))
+        .select(game_channels::channel_id);
+    diesel::delete(channels::table)
+        .filter(channels::id.eq_any(channels))
+        .execute(conn)?;
+    diesel::delete(games::table.find(id))
+        .execute(conn)
+}
+
 pub fn set_stopped(
     conn: &PgConnection,
     game_id: i64,
