@@ -80,6 +80,8 @@ impl ChatServer {
                     client.do_send(Msg(cmd.to_string())).ok();
                 }
             }
+        } else {
+            self.broadcast(cmd, -1);
         }
     }
 
