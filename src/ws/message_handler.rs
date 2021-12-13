@@ -29,25 +29,34 @@ pub fn cmd_handler(
         Cmd::SendReq {
             channel_id,
             message,
+            reply_to,
         } => {
             let channel_id = channel_id.parse::<i64>()
                 .map_err(|err| err.to_string())?;
-            let chat = services::send_msg(srv, user_id, channel_id, message.clone())?;
+            let reply_to = reply_to
+                .map(|id| id.parse::<i64>().map_err(|err| err.to_string()))
+                .transpose()?;
+            let chat = services::send_msg(
+                srv, user_id, channel_id, message.clone(), reply_to)?;
             let bc = Cmd::BroadCastMsg {
                 user_id: user_id.to_string(),
                 channel_id: channel_id.to_string(),
                 message_id: chat.id.to_string(),
                 message: chat.message,
+                reply_to: reply_to.map(|id| id.to_string()),
             };
             let rs = Cmd::SendRes {
                 message_id: chat.id.to_string(),
+                reply_to: reply_to.map(|id| id.to_string()),
             };
 
             srv.broadcast(&bc, ws_id);
             srv.send_to(&rs, ws_id);
 
             if message.starts_with(srv.app_state.bot_prefix.as_str()) {
-                game_commands(srv, ctx, ws_id, user_id, channel_id, message, chat.id).ok();
+                game_commands(
+                    srv, ctx, ws_id, user_id, channel_id, message, chat.id)
+                    .ok();
             }
         }
         Cmd::GetMsg {
@@ -119,49 +128,49 @@ fn game_commands(
     match cmds[0] {
         "join" => {
             if let Some(_) = srv.get_user_game(user_id) {
-                srv.bot_send(channel_id, ttp::in_other_game());
+                srv.bot_send(channel_id, ttp::in_other_game(), Some(msg_id));
                 return Ok(());
             }
             match srv.current_game {
                 Some(game_id) => {
                     let game = srv.games.get(&game_id).unwrap();
-                    game.do_send(game_cmds::Join(user_id));
+                    game.do_send(game_cmds::Join { user_id, msg_id });
                 }
                 None => {
                     let game_id = srv.new_game(ctx);
                     srv.current_game = Some(game_id);
                     let game = srv.games.get(&game_id).unwrap();
-                    game.do_send(game_cmds::Join(user_id));
+                    game.do_send(game_cmds::Join { user_id, msg_id });
                 }
             }
         }
         "leave" => {
             if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Leave(user_id));
+                game.do_send(game_cmds::Leave { user_id, msg_id });
             } else {
-                srv.bot_send(channel_id, ttp::not_in_game());
+                srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
             }
         }
         "start" => {
             if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Start(user_id));
+                game.do_send(game_cmds::Start { user_id, msg_id });
                 return Ok(());
             }
             match srv.current_game {
                 Some(game_id) => {
                     let game = srv.games.get(&game_id).unwrap();
-                    game.do_send(game_cmds::Start(user_id));
+                    game.do_send(game_cmds::Start { user_id, msg_id });
                 }
                 None => {
-                    srv.bot_send(channel_id, ttp::not_in_game());
+                    srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
                 }
             }
         }
         "stop" => {
             if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Stop(user_id));
+                game.do_send(game_cmds::Stop { user_id, msg_id });
             } else {
-                srv.bot_send(channel_id, ttp::not_in_game());
+                srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
             }
         }
         _ => {}

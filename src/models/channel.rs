@@ -15,6 +15,7 @@ pub struct ChatLine {
     pub user_id: i64,
     pub channel_id: i64,
     pub message: String,
+    pub reply_to: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Insertable, Queryable)]
@@ -47,6 +48,7 @@ pub struct ChatMsg {
     pub message_id: i64,
     pub user_id: i64,
     pub message: String,
+    pub reply_to: Option<i64>,
 }
 
 impl ChatMsg {
@@ -55,6 +57,7 @@ impl ChatMsg {
             message_id: self.message_id.to_string(),
             user_id: self.user_id.to_string(),
             message: self.message.clone(),
+            reply_to: self.reply_to.map(|id| id.to_string()),
         }
     }
 }
@@ -64,4 +67,5 @@ pub struct DispChatMsg {
     pub message_id: String,
     pub user_id: String,
     pub message: String,
+    pub reply_to: Option<String>,
 }

@@ -11,6 +11,7 @@ table! {
         user_id -> Int8,
         channel_id -> Int8,
         message -> Text,
+        reply_to -> Nullable<Int8>,
     }
 }
 

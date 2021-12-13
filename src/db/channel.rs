@@ -87,6 +87,7 @@ pub fn send_message(
     user_id: i64,
     channel_id: i64,
     message: String,
+    reply_to: Option<i64>,
 ) -> QueryResult<ChatLine> {
     diesel::insert_into(chat_lines::table)
         .values(&ChatLine {
@@ -94,6 +95,7 @@ pub fn send_message(
             user_id,
             channel_id,
             message,
+            reply_to,
         })
         .get_result(conn)
 }
@@ -105,7 +107,12 @@ pub fn get_messages(
     limit: i64,
 ) -> QueryResult<Vec<ChatMsg>> {
     chat_lines::table
-        .select((chat_lines::id, chat_lines::user_id, chat_lines::message))
+        .select((
+                chat_lines::id,
+                chat_lines::user_id,
+                chat_lines::message,
+                chat_lines::reply_to,
+        ))
         .filter(chat_lines::channel_id.eq(channel_id))
         .order(chat_lines::id.desc())
         .offset(offset)
