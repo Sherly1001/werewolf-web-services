@@ -11,15 +11,18 @@ pub enum Cmd {
     SendReq {
         channel_id: String,
         message: String,
+        reply_to: Option<String>,
     },
     SendRes {
         message_id: String,
+        reply_to: Option<String>,
     },
     BroadCastMsg {
         user_id: String,
         channel_id: String,
         message_id: String,
         message: String,
+        reply_to: Option<String>,
     },
     GetMsg {
         channel_id: String,

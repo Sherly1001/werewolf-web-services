@@ -113,15 +113,16 @@ impl ChatServer {
         }
     }
 
-    pub fn bot_send(&self, channel_id: i64, message: String) {
+    pub fn bot_send(&self, channel_id: i64, message: String, reply_to: Option<i64>) {
         let bot_id = self.app_state.bot_id;
-        let chat = services::send_msg(self, bot_id, channel_id, message)
+        let chat = services::send_msg(self, bot_id, channel_id, message, reply_to)
             .unwrap();
         let bc = Cmd::BroadCastMsg {
             user_id: bot_id.to_string(),
             message_id: chat.channel_id.to_string(),
             channel_id: chat.channel_id.to_string(),
             message: chat.message,
+            reply_to: reply_to.map(|id| id.to_string()),
         };
         self.broadcast(&bc, -1);
     }
@@ -213,7 +214,7 @@ impl Handler<BotMsg> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: BotMsg, _: &mut Self::Context) -> Self::Result {
-        self.bot_send(msg.channel_id, msg.msg);
+        self.bot_send(msg.channel_id, msg.msg, msg.reply_to);
     }
 }
 

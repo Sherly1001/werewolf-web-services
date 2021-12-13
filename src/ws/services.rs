@@ -15,6 +15,7 @@ pub fn send_msg(
     user_id: i64,
     channel_id: i64,
     message: String,
+    reply_to: Option<i64>,
 ) -> Result<ChatLine, String> {
     let conn = get_conn(srv.db_pool.clone());
 
@@ -28,7 +29,7 @@ pub fn send_msg(
     }
 
     let id = srv.app_state.id_generatator.lock().unwrap().real_time_generate();
-    db::channel::send_message(&conn, id, user_id, channel_id, message)
+    db::channel::send_message(&conn, id, user_id, channel_id, message, reply_to)
         .map_err(|err| err.to_string())
 }
 

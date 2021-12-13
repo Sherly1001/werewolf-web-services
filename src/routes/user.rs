@@ -130,6 +130,7 @@ pub async fn get_pers(auth: Auth, pool: web::Data<DbPool>) -> Res {
 pub struct NewMsg {
     channel_id: i64,
     message: String,
+    reply_to: Option<i64>,
 }
 
 #[post("/send/")]
@@ -165,6 +166,7 @@ pub async fn send_msg(
             auth.user_id,
             new_msg.channel_id,
             new_msg.message.clone(),
+            new_msg.reply_to,
         )
     })
     .await?;
