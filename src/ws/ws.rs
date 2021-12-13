@@ -68,7 +68,7 @@ impl ChatServer {
     pub fn broadcast(&self, cmd: &Cmd, except: i64) {
         let uids = match &cmd {
             Cmd::BroadCastMsg { channel_id, .. } => {
-                services::get_channel_users(self, channel_id.parse().unwrap())
+                services::get_channel_users(self, channel_id.parse().unwrap_or(-1))
                     .iter()
                     .map(|u| u.id)
                     .collect()
@@ -130,8 +130,11 @@ impl ChatServer {
 
     pub fn bot_send(&self, channel_id: i64, message: String, reply_to: Option<i64>) {
         let bot_id = self.app_state.bot_id;
-        let chat = services::send_msg(self, bot_id, channel_id, message, reply_to)
-            .unwrap();
+        let chat = match services::send_msg(
+            self, bot_id, channel_id, message, reply_to) {
+            Ok(c) => c,
+            Err(_) => return
+        };
         let bc = Cmd::BroadCastMsg {
             user_id: bot_id.to_string(),
             message_id: chat.channel_id.to_string(),
@@ -143,7 +146,7 @@ impl ChatServer {
     }
 
     pub fn update_pers(&self, user_id: i64) {
-        let pers = services::get_pers(self, user_id, None).unwrap();
+        let pers = services::get_pers(self, user_id, None).unwrap_or(HashMap::new());
         self.send_to_user(&Cmd::GetPersRes(pers), user_id);
     }
 
@@ -159,6 +162,7 @@ impl ChatServer {
                 ctx.address(),
                 self.db_pool.clone(),
                 self.app_state.id_generatator.clone(),
+                self.app_state.bot_id,
             ).start();
         self.games.insert(game_id, game);
 

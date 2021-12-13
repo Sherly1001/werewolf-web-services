@@ -22,6 +22,7 @@ pub struct Game {
     pub addr: Addr<ChatServer>,
     pub db_pool: DbPool,
     pub id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
+    pub bot_id: i64,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -47,37 +48,15 @@ impl Game {
         addr: Addr<ChatServer>,
         db_pool: DbPool,
         id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
+        bot_id: i64,
     ) -> Self {
         let conn = get_conn(db_pool.clone());
         db::game::create(&conn, id).unwrap();
 
-        let gameplay;
-        let werewolf;
-        let cemetery;
-
-        {
-            let mut id_lock = id_gen.lock().unwrap();
-            gameplay = id_lock.real_time_generate();
-            werewolf = id_lock.real_time_generate();
-            cemetery = id_lock.real_time_generate();
-        }
-
-        db::game::add_channel(&conn, gameplay, id, gameplay, "gameplay".to_string())
-            .unwrap();
-        db::game::add_channel(&conn, werewolf, id, werewolf, "werewolf".to_string())
-            .unwrap();
-        db::game::add_channel(&conn, cemetery, id, cemetery, "cemetery".to_string())
-            .unwrap();
-
-        let mut channels = HashMap::new();
-        channels.insert(GameChannel::GamePlay, gameplay);
-        channels.insert(GameChannel::WereWolf, werewolf);
-        channels.insert(GameChannel::Cemetery, cemetery);
-
-        Self {
+        let mut s = Self {
             // game info
             id,
-            channels,
+            channels: HashMap::new(),
             users: HashSet::new(),
             is_started: false,
             is_stopped: false,
@@ -90,7 +69,14 @@ impl Game {
             addr,
             db_pool,
             id_gen,
-        }
+            bot_id,
+        };
+
+        s.add_channel(GameChannel::GamePlay, "gameplay".to_string());
+        s.add_channel(GameChannel::WereWolf, "werewolf".to_string());
+        s.add_channel(GameChannel::Cemetery, "cemetery".to_string());
+
+        s
     }
 
     pub fn add_user(&mut self, user_id: i64) {
@@ -127,6 +113,26 @@ impl Game {
         self.users.remove(&user_id);
     }
 
+    pub fn add_channel(&mut self, channel: GameChannel, channel_name: String) {
+        let conn = get_conn(self.db_pool.clone());
+
+        let channel_id;
+        let new_id1;
+        let new_id2;
+        {
+            let mut id_lock = self.id_gen.lock().unwrap();
+            channel_id = id_lock.real_time_generate();
+            new_id1 = id_lock.real_time_generate();
+            new_id2 = id_lock.real_time_generate();
+        }
+
+        db::game::add_channel(&conn, new_id1, self.id, channel_id, channel_name)
+            .unwrap();
+        self.channels.insert(channel, channel_id);
+        db::channel::set_pers(&conn, new_id2, self.bot_id, channel_id, true, true)
+            .unwrap();
+    }
+
     pub fn start(&mut self) {
         self.is_started = true;
     }
@@ -141,4 +147,10 @@ impl Game {
 
 impl Actor for Game {
     type Context = Context<Self>;
+}
+
+impl std::ops::Drop for Game {
+    fn drop(&mut self) {
+        self.stop();
+    }
 }
