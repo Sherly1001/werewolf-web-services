@@ -14,6 +14,7 @@ pub enum Cmd {
         reply_to: Option<String>,
     },
     SendRes {
+        channel_id: String,
         message_id: String,
         reply_to: Option<String>,
     },

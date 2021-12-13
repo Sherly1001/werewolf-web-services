@@ -46,6 +46,7 @@ pub fn cmd_handler(
                 reply_to: reply_to.map(|id| id.to_string()),
             };
             let rs = Cmd::SendRes {
+                channel_id: channel_id.to_string(),
                 message_id: chat.id.to_string(),
                 reply_to: reply_to.map(|id| id.to_string()),
             };

@@ -66,8 +66,23 @@ impl ChatServer {
     }
 
     pub fn broadcast(&self, cmd: &Cmd, except: i64) {
-        for (&ws_id, client) in self.clients.iter() {
-            if ws_id != except {
+        let uids = match &cmd {
+            Cmd::BroadCastMsg { channel_id, .. } => {
+                services::get_channel_users(self, channel_id.parse().unwrap())
+                    .iter()
+                    .map(|u| u.id)
+                    .collect()
+            }
+            _ => self.users.keys().cloned().collect::<Vec<i64>>()
+        };
+        let allow_wsi = uids
+            .iter()
+            .map(|id| self.users.get(&id).unwrap_or(&vec![]).clone())
+            .flatten()
+            .collect::<Vec<i64>>();
+
+        for (ws_id, client) in self.clients.iter() {
+            if *ws_id != except && allow_wsi.contains(ws_id) {
                 client.do_send(Msg(cmd.to_string())).ok();
             }
         }
