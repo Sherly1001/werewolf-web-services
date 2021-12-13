@@ -138,7 +138,7 @@ impl Handler<Start> for Game {
             return self.addr.do_send(BotMsg {
                 channel_id: 1,
                 msg: ttp::not_enough_player(self.users.len()),
-                reply_to: Some(msg.user_id),
+                reply_to: Some(msg.msg_id),
             });
         }
 

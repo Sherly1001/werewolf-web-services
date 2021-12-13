@@ -133,7 +133,7 @@ impl ChatServer {
         let chat = match services::send_msg(
             self, bot_id, channel_id, message, reply_to) {
             Ok(c) => c,
-            Err(_) => return
+            Err(e) => return eprintln!("bot_send: {}", e)
         };
         let bc = Cmd::BroadCastMsg {
             user_id: bot_id.to_string(),
