@@ -14,10 +14,7 @@ pub fn create(
     id: i64,
 ) -> QueryResult<Game> {
     diesel::insert_into(games::table)
-        .values(&Game {
-            id,
-            is_stopped: false,
-        })
+        .values(&Game { id })
         .get_result(conn)
 }
 
@@ -33,16 +30,6 @@ pub fn delete(
         .execute(conn)?;
     diesel::delete(games::table.find(id))
         .execute(conn)
-}
-
-pub fn set_stopped(
-    conn: &PgConnection,
-    game_id: i64,
-) -> QueryResult<Game> {
-    let filter = games::table.find(game_id);
-    diesel::update(filter)
-        .set(games::is_stopped.eq(true))
-        .get_result(conn)
 }
 
 pub fn add_channel(
@@ -120,7 +107,6 @@ pub fn get_from_user(
 ) -> QueryResult<Game> {
     game_users::table
         .filter(game_users::user_id.eq(user_id))
-        .filter(games::is_stopped.eq(false))
         .inner_join(games::table)
         .select(games::all_columns)
         .get_result(conn)
@@ -133,7 +119,6 @@ pub fn get_from_channel(
 ) -> QueryResult<Game> {
     game_channels::table
         .filter(game_channels::channel_id.eq(channel_id))
-        .filter(games::is_stopped.eq(false))
         .inner_join(games::table)
         .select(games::all_columns)
         .get_result(conn)

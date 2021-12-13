@@ -5,7 +5,6 @@ use crate::schema::{games, game_users, game_channels};
 #[derive(Serialize, Deserialize, Queryable, Insertable, Debug)]
 pub struct Game {
     pub id: i64,
-    pub is_stopped: bool,
 }
 
 #[derive(Serialize, Deserialize, Queryable, Insertable, Debug)]
