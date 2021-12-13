@@ -169,8 +169,16 @@ fn game_commands(
         "stop" => {
             if let Some(game) = srv.get_user_game(user_id) {
                 game.do_send(game_cmds::Stop { user_id, msg_id });
-            } else {
-                srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
+                return Ok(());
+            }
+            match srv.current_game {
+                Some(game_id) => {
+                    let game = srv.games.get(&game_id).unwrap();
+                    game.do_send(game_cmds::Stop { user_id, msg_id });
+                }
+                None => {
+                    srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
+                }
             }
         }
         _ => {}
