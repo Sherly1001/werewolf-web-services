@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use diesel::prelude::*;
 use diesel::PgConnection;
 
+use crate::models::user::User;
 use crate::models::channel::{
     Channel, ChatLine, ChatMsg, ChannelPermission,
     UserChannelPermission, UserChannelPermissionDisplay,
 };
-use crate::schema::{channels, chat_lines, user_channel_permissions as ucp};
+use crate::schema::{channels, chat_lines, users, user_channel_permissions as ucp};
 
 pub fn get_pers(
     conn: &PgConnection,
@@ -16,7 +17,13 @@ pub fn get_pers(
 ) -> QueryResult<UserChannelPermissionDisplay> {
     ucp::table
         .inner_join(channels::table)
-        .select((ucp::user_id, ucp::channel_id, channels::channel_name, ucp::readable, ucp::sendable))
+        .select((
+                ucp::user_id,
+                ucp::channel_id,
+                channels::channel_name,
+                ucp::readable,
+                ucp::sendable,
+        ))
         .filter(ucp::user_id.eq(user_id))
         .filter(ucp::channel_id.eq(channel_id))
         .get_result(conn)
@@ -28,7 +35,13 @@ pub fn get_all_pers(
 ) -> QueryResult<HashMap<String, ChannelPermission>> {
     ucp::table
         .inner_join(channels::table)
-        .select((ucp::user_id, ucp::channel_id, channels::channel_name, ucp::readable, ucp::sendable))
+        .select((
+                ucp::user_id,
+                ucp::channel_id,
+                channels::channel_name,
+                ucp::readable,
+                ucp::sendable,
+        ))
         .filter(ucp::user_id.eq(user_id))
         .filter(ucp::readable.eq(true))
         .get_results::<UserChannelPermissionDisplay>(conn)
@@ -117,5 +130,17 @@ pub fn get_messages(
         .order(chat_lines::id.desc())
         .offset(offset)
         .limit(limit)
+        .get_results(conn)
+}
+
+pub fn get_users(
+    conn: &PgConnection,
+    channel_id: i64,
+) -> QueryResult<Vec<User>> {
+    ucp::table
+        .filter(ucp::channel_id.eq(channel_id))
+        .filter(ucp::readable.eq(true))
+        .inner_join(users::table)
+        .select(users::all_columns)
         .get_results(conn)
 }

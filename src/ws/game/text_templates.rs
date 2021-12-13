@@ -18,6 +18,10 @@ pub fn max_player() -> String {
     format!("Đã đạt số lượng người chơi tối đa.")
 }
 
+pub fn must_in_channel(channel_id: i64) -> String {
+    format!("Hãy sử dụng lệnh trong <#{}>.", channel_id)
+}
+
 pub fn not_enough_player(numplayer: usize) -> String {
     format!("Chưa đủ người chơi, hiện có {}.", numplayer)
 }

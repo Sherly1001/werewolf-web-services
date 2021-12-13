@@ -42,10 +42,11 @@ pub fn cmd_handler(
                 user_id: user_id.to_string(),
                 channel_id: channel_id.to_string(),
                 message_id: chat.id.to_string(),
-                message: chat.message,
+                message: chat.message.clone(),
                 reply_to: reply_to.map(|id| id.to_string()),
             };
             let rs = Cmd::SendRes {
+                channel_id: channel_id.to_string(),
                 message_id: chat.id.to_string(),
                 reply_to: reply_to.map(|id| id.to_string()),
             };
@@ -56,6 +57,7 @@ pub fn cmd_handler(
             if message.starts_with(srv.app_state.bot_prefix.as_str()) {
                 game_commands(
                     srv, ctx, ws_id, user_id, channel_id, message, chat.id)
+                    .map_err(|err| srv.bot_send(channel_id, err, Some(chat.id)))
                     .ok();
             }
         }
@@ -127,9 +129,9 @@ fn game_commands(
 
     match cmds[0] {
         "join" => {
+            must_in_channel(1, channel_id)?;
             if let Some(_) = srv.get_user_game(user_id) {
-                srv.bot_send(channel_id, ttp::in_other_game(), Some(msg_id));
-                return Ok(());
+                return Err(ttp::in_other_game());
             }
             match srv.current_game {
                 Some(game_id) => {
@@ -145,6 +147,7 @@ fn game_commands(
             }
         }
         "leave" => {
+            must_in_channel(1, channel_id)?;
             if let Some(game) = srv.get_user_game(user_id) {
                 game.do_send(game_cmds::Leave { user_id, msg_id });
             } else {
@@ -152,6 +155,7 @@ fn game_commands(
             }
         }
         "start" => {
+            must_in_channel(1, channel_id)?;
             if let Some(game) = srv.get_user_game(user_id) {
                 game.do_send(game_cmds::Start { user_id, msg_id });
                 return Ok(());
@@ -167,6 +171,7 @@ fn game_commands(
             }
         }
         "stop" => {
+            must_in_channel(1, channel_id)?;
             if let Some(game) = srv.get_user_game(user_id) {
                 game.do_send(game_cmds::Stop { user_id, msg_id });
                 return Ok(());
@@ -185,4 +190,12 @@ fn game_commands(
     }
 
     Ok(())
+}
+
+fn must_in_channel(
+    channel_id: i64,
+    current_channel_id: i64,
+) -> Result<(), String> {
+    if channel_id == current_channel_id { Ok(()) }
+    else { Err(ttp::must_in_channel(channel_id)) }
 }

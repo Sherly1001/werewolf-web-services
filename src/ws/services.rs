@@ -5,7 +5,7 @@ use diesel::{PgConnection, r2d2::{ConnectionManager, PooledConnection}};
 use crate::db;
 use crate::config::DbPool;
 use crate::models::channel::{ChatLine, DispChatMsg, ChannelPermission};
-use crate::models::user::UserDisplay;
+use crate::models::user::{User, UserDisplay};
 
 use super::ChatServer;
 
@@ -88,6 +88,15 @@ pub fn get_pers(
             });
             hash
         })
+}
+
+pub fn get_channel_users(
+    srv: &ChatServer,
+    channel_id: i64,
+) -> Vec<User> {
+    let conn = get_conn(srv.db_pool.clone());
+    db::channel::get_users(&conn, channel_id)
+        .unwrap_or(vec![])
 }
 
 pub fn get_game_from_user(
