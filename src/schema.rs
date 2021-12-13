@@ -34,7 +34,6 @@ table! {
 table! {
     games (id) {
         id -> Int8,
-        is_stopped -> Bool,
     }
 }
 

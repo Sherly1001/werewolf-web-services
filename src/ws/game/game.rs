@@ -132,8 +132,8 @@ impl Game {
     }
 
     pub fn stop(&mut self) {
+        if self.is_stopped { return }
         let conn = get_conn(self.db_pool.clone());
-        db::game::set_stopped(&conn, self.id).unwrap();
         db::game::delete(&conn, self.id).unwrap();
         self.is_stopped = true;
     }
