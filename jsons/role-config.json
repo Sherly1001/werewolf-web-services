@@ -1,0 +1,143 @@
+{
+  "4": {
+    "Werewolf": 1,
+    "Villager": [ 0.5, 2 ],
+    "Seer": [ 0.25, 1 ],
+    "Guard": [ 0.25, 1 ]
+  },
+  "5": {
+    "Werewolf": 1,
+    "Seer": 1,
+    "Villager": [ 0.43, 3 ],
+    "Lycan": [ 0.28, 2 ],
+    "Guard": [ 0.14, 1],
+    "Fox": [ 0.14, 1 ]
+  },
+  "6": {
+    "Werewolf": [ 1, 2 ],
+    "Seer": 1,
+    "Guard": 1,
+    "Lycan": [ 0.35, 2 ],
+    "Villager": [ 0.05, 2],
+    "Witch": [ 0.26, 1 ],
+    "Fox": [ 0.13, 1],
+    "Cupid": [ 0.174, 1 ],
+    "Betrayer": [ 0.05, 1 ]
+  },
+  "7": {
+    "Werewolf": [ 1, 2 ],
+    "Seer": 1,
+    "Guard": 1,
+    "Cupid": [ 0.273, 1 ],
+    "Witch": [ 0.273, 1 ],
+    "Villager": [ 0.09, 1 ],
+    "Lycan": [ 0.18, 2 ],
+    "Fox": [ 0.09, 1 ],
+    "Betrayer": [ 0.09, 1 ]
+  },
+  "8": {
+    "Werewolf": [ 1, 2 ],
+    "Superwolf": 1,
+    "Seer": 1,
+    "Guard": 1,
+    "Villager": [ 0.43, 3 ],
+    "Witch": [ 0.24, 1 ],
+    "Cupid": [ 0.143, 1 ],
+    "Fox": [ 0.095, 1 ],
+    "Lycan": [ 0.095, 1 ]
+  },
+  "9": {
+    "Werewolf": [ 1, 2 ],
+    "Superwolf": 1,
+    "Seer": 1,
+    "Guard": 1,
+    "Villager": [ 0.4, 3 ],
+    "Witch": [ 0.167, 1 ],
+    "Cupid": [ 0.167, 1 ],
+    "Fox": [ 0.222, 1 ],
+    "Lycan": [ 0.056, 1 ]
+  },
+  "10": {
+    "Werewolf": 2,
+    "Superwolf": 1,
+    "Seer": 1,
+    "Guard": 1,
+    "Fox": 1,
+    "Lycan": 1,
+    "Cupid": 1,
+    "Witch": 1,
+    "Betrayer": 1
+  },
+  "11": {
+    "Werewolf": [ 1, 3 ],
+    "Superwolf": [ 0.6, 1 ],
+    "Seer": 1,
+    "Guard": 1,
+    "Witch": [ 0.6, 1 ],
+    "Villager": [ 0.8, 6 ],
+    "Lycan": [ 1, 2 ],
+    "Cupid": [ 0.8, 1 ],
+    "Fox": [ 0.6, 1 ],
+    "Betrayer": [ 0.6, 1 ]
+  },
+  "12": {
+    "Werewolf": [ 1, 3 ],
+    "Superwolf": 1,
+    "Seer": 1,
+    "Guard": 1,
+    "Fox": 1,
+    "Witch": 1,
+    "Villager": [ 0.6, 4 ],
+    "Lycan": [ 1, 2 ],
+    "Cupid": 1,
+    "Betrayer": 1
+  },
+  "13": {
+    "Superwolf": 1,
+    "Werewolf": 2,
+    "Seer": 1,
+    "Guard": 1,
+    "Villager": [ 0.99, 5 ],
+    "Lycan": 1,
+    "Cupid": 1,
+    "Witch": 1,
+    "Fox": 1,
+    "Betrayer": 1
+  },
+  "14": {
+    "Superwolf": 1,
+    "Werewolf": 2,
+    "Seer": 1,
+    "Guard": 1,
+    "Witch": 1,
+    "Villager": 4,
+    "Lycan": 1,
+    "Fox": 1,
+    "Cupid": 1,
+    "Betrayer": 1
+  },
+  "15": {
+    "Superwolf": 1,
+    "Werewolf": 2,
+    "Seer": 1,
+    "Guard": 1,
+    "Witch": 1,
+    "Villager": 4,
+    "Lycan": 2,
+    "Fox": 1,
+    "Cupid": 1,
+    "Betrayer": 1
+  },
+  "16": {
+    "Superwolf": 1,
+    "Werewolf": 2,
+    "Seer": 1,
+    "Guard": 1,
+    "Witch": 1,
+    "Villager": 5,
+    "Lycan": 2,
+    "Fox": 1,
+    "Cupid": 1,
+    "Betrayer": 1
+  }
+}

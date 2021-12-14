@@ -1,6 +1,6 @@
 use actix::{Message, Handler};
 
-use super::Game;
+use super::{Game, game::GameChannel};
 use super::text_templates as ttp;
 
 #[derive(Message, Debug)]
@@ -167,12 +167,17 @@ impl Handler<Start> for Game {
             });
         }
 
-        if let Err(err) = self.start() {
-            return self.addr.do_send(BotMsg {
+        match self.start() {
+            Err(err) => return self.addr.do_send(BotMsg {
                 channel_id: 1,
                 msg: err,
                 reply_to: Some(msg.msg_id),
-            });
+            }),
+            Ok(roles) => self.addr.do_send(BotMsg {
+                channel_id: *self.channels.get(&GameChannel::GamePlay).unwrap(),
+                msg: ttp::roles_list(&roles),
+                reply_to: None,
+            })
         }
 
         self.addr.do_send(StartGame(self.id));

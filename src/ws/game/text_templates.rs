@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub fn not_in_game() -> String {
     format!("Bạn đang không ở trong game.")
 }
@@ -28,6 +30,10 @@ pub fn not_enough_player(numplayer: usize) -> String {
 
 pub fn start_game() -> String {
     format!("2/3 người chơi đã sẵn sàng, trò chơi chuẩn bị bắt đầu.")
+}
+
+pub fn roles_list(roles: &HashMap<String, usize>) -> String {
+    format!("Danh sách nhân vật trong game: {:?}.", roles)
 }
 
 pub fn stop_game() -> String {

@@ -8,10 +8,13 @@ use crate::{config::DbPool, db};
 
 use crate::ws::ChatServer;
 
+use super::characters::{player::Player, self};
+
 pub struct Game {
     pub id: i64,
     pub channels: HashMap<GameChannel, i64>,
     pub users: HashSet<i64>,
+    pub players: HashMap<i64, Box<dyn Player>>,
     pub is_started: bool,
     pub is_stopped: bool,
     pub is_day: bool,
@@ -58,6 +61,7 @@ impl Game {
             id,
             channels: HashMap::new(),
             users: HashSet::new(),
+            players: HashMap::new(),
             is_started: false,
             is_stopped: false,
             is_day: true,
@@ -114,6 +118,9 @@ impl Game {
         }
 
         self.users.remove(&user_id);
+        self.vote_starts.remove(&user_id);
+        self.vote_stops.remove(&user_id);
+
         Ok(())
     }
 
@@ -143,9 +150,18 @@ impl Game {
         Ok(())
     }
 
-    pub fn start(&mut self) -> Result<(), String> {
+    pub fn start(&mut self) -> Result<HashMap<String, usize>, String> {
+        self.players = characters::rand_roles(
+            &self.users.iter().collect::<Vec<&i64>>())?;
+
+        let mut roles = HashMap::new();
+        for (_, role) in self.players.iter() {
+            let role_name = role.get_role_name().to_string();
+            *roles.entry(role_name).or_default() += 1;
+        }
+
         self.is_started = true;
-        Ok(())
+        Ok(roles)
     }
 
     pub fn stop(&mut self) -> Result<(), String> {
