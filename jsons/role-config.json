@@ -15,7 +15,7 @@
   },
   "6": {
     "Werewolf": [ 1, 2 ],
-    "Seer": 1,
+    "Seer": [ 0.25, 1 ],
     "Guard": 1,
     "Lycan": [ 0.35, 2 ],
     "Villager": [ 0.05, 2],
@@ -26,7 +26,7 @@
   },
   "7": {
     "Werewolf": [ 1, 2 ],
-    "Seer": 1,
+    "Seer": [ 0.3, 1 ],
     "Guard": 1,
     "Cupid": [ 0.273, 1 ],
     "Witch": [ 0.273, 1 ],
@@ -37,7 +37,7 @@
   },
   "8": {
     "Werewolf": [ 1, 2 ],
-    "Superwolf": 1,
+    "Superwolf": [ 0.35, 1 ],
     "Seer": 1,
     "Guard": 1,
     "Villager": [ 0.43, 3 ],
@@ -70,15 +70,15 @@
   },
   "11": {
     "Werewolf": [ 1, 3 ],
-    "Superwolf": [ 0.6, 1 ],
+    "Superwolf": 1,
     "Seer": 1,
     "Guard": 1,
-    "Witch": [ 0.6, 1 ],
-    "Villager": [ 0.8, 6 ],
+    "Witch": [ 0.135, 1 ],
+    "Villager": [ 0.5, 6 ],
     "Lycan": [ 1, 2 ],
-    "Cupid": [ 0.8, 1 ],
-    "Fox": [ 0.6, 1 ],
-    "Betrayer": [ 0.6, 1 ]
+    "Cupid": [ 0.12, 1 ],
+    "Fox": [ 0.08, 1 ],
+    "Betrayer": [ 0.05, 1 ]
   },
   "12": {
     "Werewolf": [ 1, 3 ],
@@ -87,7 +87,7 @@
     "Guard": 1,
     "Fox": 1,
     "Witch": 1,
-    "Villager": [ 0.6, 4 ],
+    "Villager": [ 0.99, 4 ],
     "Lycan": [ 1, 2 ],
     "Cupid": 1,
     "Betrayer": 1
@@ -97,7 +97,7 @@
     "Werewolf": 2,
     "Seer": 1,
     "Guard": 1,
-    "Villager": [ 0.99, 5 ],
+    "Villager": 3,
     "Lycan": 1,
     "Cupid": 1,
     "Witch": 1,
