@@ -1,6 +1,6 @@
 use actix::{Message, Handler};
 
-use super::Game;
+use super::{Game, game::GameChannel};
 use super::text_templates as ttp;
 
 #[derive(Message, Debug)]
@@ -93,7 +93,14 @@ impl Handler<Join> for Game {
             });
         }
 
-        self.add_user(msg.user_id);
+        if let Err(err) = self.add_user(msg.user_id) {
+            self.addr.do_send(BotMsg {
+                channel_id: 1,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            })
+        }
+
         self.addr.do_send(UpdatePers(msg.user_id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
@@ -109,7 +116,13 @@ impl Handler<Leave> for Game {
     fn handle(&mut self, msg: Leave, _: &mut Self::Context) -> Self::Result {
         if !self.must_in_game(msg.user_id, msg.msg_id) { return }
 
-        self.remove_user(msg.user_id);
+        if let Err(err) = self.remove_user(msg.user_id) {
+            self.addr.do_send(BotMsg {
+                channel_id: 1,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            })
+        }
 
         self.addr.do_send(UpdatePers(msg.user_id));
         self.addr.do_send(BotMsg {
@@ -154,7 +167,19 @@ impl Handler<Start> for Game {
             });
         }
 
-        self.start();
+        match self.start() {
+            Err(err) => return self.addr.do_send(BotMsg {
+                channel_id: 1,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            }),
+            Ok(roles) => self.addr.do_send(BotMsg {
+                channel_id: *self.channels.get(&GameChannel::GamePlay).unwrap(),
+                msg: ttp::roles_list(&roles),
+                reply_to: None,
+            })
+        }
+
         self.addr.do_send(StartGame(self.id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
@@ -186,7 +211,14 @@ impl Handler<Stop> for Game {
             });
         }
 
-        self.stop();
+        if let Err(err) = self.stop() {
+            return self.addr.do_send(BotMsg {
+                channel_id: 1,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
         self.addr.do_send(StopGame(self.id));
         self.addr.do_send(BotMsg {
             channel_id: 1,

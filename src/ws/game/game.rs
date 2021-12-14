@@ -8,10 +8,13 @@ use crate::{config::DbPool, db};
 
 use crate::ws::ChatServer;
 
+use super::characters::{player::Player, self};
+
 pub struct Game {
     pub id: i64,
     pub channels: HashMap<GameChannel, i64>,
     pub users: HashSet<i64>,
+    pub players: HashMap<i64, Box<dyn Player>>,
     pub is_started: bool,
     pub is_stopped: bool,
     pub is_day: bool,
@@ -58,6 +61,7 @@ impl Game {
             id,
             channels: HashMap::new(),
             users: HashSet::new(),
+            players: HashMap::new(),
             is_started: false,
             is_stopped: false,
             is_day: true,
@@ -72,15 +76,16 @@ impl Game {
             bot_id,
         };
 
-        s.add_channel(GameChannel::GamePlay, "gameplay".to_string());
-        s.add_channel(GameChannel::WereWolf, "werewolf".to_string());
-        s.add_channel(GameChannel::Cemetery, "cemetery".to_string());
+        s.add_channel(GameChannel::GamePlay, "gameplay".to_string()).unwrap();
+        s.add_channel(GameChannel::WereWolf, "werewolf".to_string()).unwrap();
+        s.add_channel(GameChannel::Cemetery, "cemetery".to_string()).unwrap();
 
         s
     }
 
-    pub fn add_user(&mut self, user_id: i64) {
-        let &gameplay = self.channels.get(&GameChannel::GamePlay).unwrap();
+    pub fn add_user(&mut self, user_id: i64) -> Result<(), String> {
+        let &gameplay = self.channels.get(&GameChannel::GamePlay)
+            .ok_or("can't get gameplay".to_string())?;
         let new_id1;
         let new_id2;
 
@@ -96,24 +101,34 @@ impl Game {
             .unwrap();
 
         self.users.insert(user_id);
+        Ok(())
     }
 
-    pub fn remove_user(&mut self, user_id: i64) {
+    pub fn remove_user(&mut self, user_id: i64) -> Result<(), String> {
         let conn = get_conn(self.db_pool.clone());
-        db::game::remove_user(&conn, self.id, user_id).unwrap();
+        db::game::remove_user(&conn, self.id, user_id)
+            .map_err(|err| err.to_string())?;
 
         let mut id_lock = self.id_gen.lock().unwrap();
         for (_, &channel_id) in self.channels.iter() {
             db::channel::set_pers(
                 &conn, id_lock.real_time_generate(),
                 user_id, channel_id, false, false,
-            ).unwrap();
+            ).map_err(|err| err.to_string())?;
         }
 
         self.users.remove(&user_id);
+        self.vote_starts.remove(&user_id);
+        self.vote_stops.remove(&user_id);
+
+        Ok(())
     }
 
-    pub fn add_channel(&mut self, channel: GameChannel, channel_name: String) {
+    pub fn add_channel(
+        &mut self,
+        channel: GameChannel,
+        channel_name: String,
+    ) -> Result<(), String> {
         let conn = get_conn(self.db_pool.clone());
 
         let channel_id;
@@ -127,21 +142,35 @@ impl Game {
         }
 
         db::game::add_channel(&conn, new_id1, self.id, channel_id, channel_name)
-            .unwrap();
+            .map_err(|err| err.to_string())?;
         self.channels.insert(channel, channel_id);
         db::channel::set_pers(&conn, new_id2, self.bot_id, channel_id, true, true)
-            .unwrap();
+            .map_err(|err| err.to_string())?;
+
+        Ok(())
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<HashMap<String, usize>, String> {
+        self.players = characters::rand_roles(
+            &self.users.iter().collect::<Vec<&i64>>())?;
+
+        let mut roles = HashMap::new();
+        for (_, role) in self.players.iter() {
+            let role_name = role.get_role_name().to_string();
+            *roles.entry(role_name).or_default() += 1;
+        }
+
         self.is_started = true;
+        Ok(roles)
     }
 
-    pub fn stop(&mut self) {
-        if self.is_stopped { return }
+    pub fn stop(&mut self) -> Result<(), String> {
+        if self.is_stopped { return Ok(()) }
         let conn = get_conn(self.db_pool.clone());
-        db::game::delete(&conn, self.id).unwrap();
+        db::game::delete(&conn, self.id)
+            .map_err(|err| err.to_string())?;
         self.is_stopped = true;
+        Ok(())
     }
 }
 
@@ -151,6 +180,6 @@ impl Actor for Game {
 
 impl std::ops::Drop for Game {
     fn drop(&mut self) {
-        self.stop();
+        self.stop().ok();
     }
 }
