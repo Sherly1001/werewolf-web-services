@@ -154,10 +154,32 @@ impl Game {
         self.players = characters::rand_roles(
             &self.users.iter().collect::<Vec<&i64>>())?;
 
+        let conn = get_conn(self.db_pool.clone());
+        let mut id_lock = self.id_gen.lock().unwrap();
         let mut roles = HashMap::new();
-        for (_, role) in self.players.iter() {
-            let role_name = role.get_role_name().to_string();
+
+        for (_, player) in self.players.iter_mut() {
+            let role_name = player.get_role_name().to_string();
             *roles.entry(role_name).or_default() += 1;
+
+            let new_id1 = id_lock.real_time_generate();
+            let new_id2 = id_lock.real_time_generate();
+            let new_id3 = id_lock.real_time_generate();
+            let channel_id = id_lock.real_time_generate();
+
+            db::game::add_channel(&conn, new_id1, self.id,
+                channel_id, "personal channel".to_string())
+                .map_err(|err| err.to_string())?;
+            db::channel::set_pers(&conn, new_id2, *player.get_playerid(),
+                channel_id, true, true)
+                .map_err(|err| err.to_string())?;
+            db::channel::set_pers(&conn, new_id3, self.bot_id,
+                channel_id, true, true)
+                .map_err(|err| err.to_string())?;
+
+            self.channels.insert(
+                GameChannel::Personal(*player.get_playerid()), channel_id);
+            *player.get_channelid() = channel_id;
         }
 
         self.is_started = true;
