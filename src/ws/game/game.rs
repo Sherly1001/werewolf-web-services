@@ -28,7 +28,7 @@ pub struct Game {
     pub bot_id: i64,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub enum GameChannel {
     GamePlay,
     WereWolf,
@@ -81,6 +81,50 @@ impl Game {
         s.add_channel(GameChannel::Cemetery, "cemetery".to_string()).unwrap();
 
         s
+    }
+
+    pub fn load_from_db(
+        addr: Addr<ChatServer>,
+        db_pool: DbPool,
+        id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
+        bot_id: i64,
+    ) -> Option<Self> {
+        let conn = get_conn(db_pool.clone());
+        let id = db::game::get(&conn)?.id;
+        let channels = db::game::get_channels(&conn, id).ok()?;
+        let users = db::game::get_users(&conn, id).ok()?;
+
+        let users = users.iter().map(|u| u.id).collect();
+        let channels = channels.iter()
+            .map(|cl| {
+                match cl.channel_name.as_str() {
+                    "gameplay" => Some((GameChannel::GamePlay, cl.id)),
+                    "werewolf" => Some((GameChannel::WereWolf, cl.id)),
+                    "cemetery" => Some((GameChannel::Cemetery, cl.id)),
+                    _ => return None,
+                }
+            })
+            .collect::<Option<HashMap<GameChannel, i64>>>()?;
+
+        Some(Self {
+            // game info
+            id,
+            channels,
+            users,
+            players: HashMap::new(),
+            is_started: false,
+            is_stopped: false,
+            is_day: true,
+            num_day: 0,
+
+            // other info
+            vote_starts: HashSet::new(),
+            vote_stops: HashSet::new(),
+            addr,
+            db_pool,
+            id_gen,
+            bot_id,
+        })
     }
 
     pub fn add_user(&mut self, user_id: i64) -> Result<(), String> {
@@ -154,10 +198,32 @@ impl Game {
         self.players = characters::rand_roles(
             &self.users.iter().collect::<Vec<&i64>>())?;
 
+        let conn = get_conn(self.db_pool.clone());
+        let mut id_lock = self.id_gen.lock().unwrap();
         let mut roles = HashMap::new();
-        for (_, role) in self.players.iter() {
-            let role_name = role.get_role_name().to_string();
+
+        for (_, player) in self.players.iter_mut() {
+            let role_name = player.get_role_name().to_string();
             *roles.entry(role_name).or_default() += 1;
+
+            let new_id1 = id_lock.real_time_generate();
+            let new_id2 = id_lock.real_time_generate();
+            let new_id3 = id_lock.real_time_generate();
+            let channel_id = id_lock.real_time_generate();
+
+            db::game::add_channel(&conn, new_id1, self.id,
+                channel_id, "personal channel".to_string())
+                .map_err(|err| err.to_string())?;
+            db::channel::set_pers(&conn, new_id2, *player.get_playerid(),
+                channel_id, true, true)
+                .map_err(|err| err.to_string())?;
+            db::channel::set_pers(&conn, new_id3, self.bot_id,
+                channel_id, true, true)
+                .map_err(|err| err.to_string())?;
+
+            self.channels.insert(
+                GameChannel::Personal(*player.get_playerid()), channel_id);
+            *player.get_channelid() = channel_id;
         }
 
         self.is_started = true;
@@ -180,6 +246,8 @@ impl Actor for Game {
 
 impl std::ops::Drop for Game {
     fn drop(&mut self) {
-        self.stop().ok();
+        if self.is_started {
+            self.stop().ok();
+        }
     }
 }

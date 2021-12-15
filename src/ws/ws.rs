@@ -48,7 +48,7 @@ pub struct ChatServer {
     pub clients: HashMap<i64, Recipient<Msg>>,
     pub users: HashMap<i64, Vec<i64>>,
     pub games: HashMap<i64, Addr<Game>>,
-    pub current_game: Option<i64>,
+    pub current_game: Option<Addr<Game>>,
     pub app_state: AppState,
     pub db_pool: DbPool,
 }
@@ -137,7 +137,7 @@ impl ChatServer {
         };
         let bc = Cmd::BroadCastMsg {
             user_id: bot_id.to_string(),
-            message_id: chat.channel_id.to_string(),
+            message_id: chat.id.to_string(),
             channel_id: chat.channel_id.to_string(),
             message: chat.message,
             reply_to: reply_to.map(|id| id.to_string()),
@@ -150,7 +150,19 @@ impl ChatServer {
         self.send_to_user(&Cmd::GetPersRes(pers), user_id);
     }
 
-    pub fn new_game(&mut self, ctx: &mut Context<Self>) -> i64 {
+    pub fn new_game(&mut self, ctx: &mut Context<Self>) -> Addr<Game> {
+        if let Some(game) = Game::load_from_db(
+            ctx.address(),
+            self.db_pool.clone(),
+            self.app_state.id_generatator.clone(),
+            self.app_state.bot_id,
+        ) {
+            let id = game.id;
+            let addr = game.start();
+            self.games.insert(id, addr.clone());
+            return addr;
+        }
+
         let game_id = self .app_state
             .id_generatator
             .lock()
@@ -164,9 +176,9 @@ impl ChatServer {
                 self.app_state.id_generatator.clone(),
                 self.app_state.bot_id,
             ).start();
-        self.games.insert(game_id, game);
+        self.games.insert(game_id, game.clone());
 
-        game_id
+        game
     }
 
     pub fn get_user_game(&self, user_id: i64) -> Option<&Addr<Game>> {
