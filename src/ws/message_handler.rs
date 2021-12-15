@@ -130,18 +130,17 @@ fn game_commands(
     match cmds[0] {
         "join" => {
             must_in_channel(1, channel_id)?;
-            if let Some(_) = srv.get_user_game(user_id) {
-                return Err(ttp::in_other_game());
+            if let (Some(game), Some(cur)) =
+                (srv.get_user_game(user_id), srv.current_game.as_ref()) {
+                if game != cur { return Err(ttp::in_other_game()) }
             }
-            match srv.current_game {
-                Some(game_id) => {
-                    let game = srv.games.get(&game_id).unwrap();
+            match srv.current_game.as_ref() {
+                Some(game) => {
                     game.do_send(game_cmds::Join { user_id, msg_id });
                 }
                 None => {
-                    let game_id = srv.new_game(ctx);
-                    srv.current_game = Some(game_id);
-                    let game = srv.games.get(&game_id).unwrap();
+                    let game = srv.new_game(ctx);
+                    srv.current_game = Some(game.clone());
                     game.do_send(game_cmds::Join { user_id, msg_id });
                 }
             }
@@ -160,9 +159,8 @@ fn game_commands(
                 game.do_send(game_cmds::Start { user_id, msg_id });
                 return Ok(());
             }
-            match srv.current_game {
-                Some(game_id) => {
-                    let game = srv.games.get(&game_id).unwrap();
+            match srv.current_game.as_ref() {
+                Some(game) => {
                     game.do_send(game_cmds::Start { user_id, msg_id });
                 }
                 None => {
@@ -176,9 +174,8 @@ fn game_commands(
                 game.do_send(game_cmds::Stop { user_id, msg_id });
                 return Ok(());
             }
-            match srv.current_game {
-                Some(game_id) => {
-                    let game = srv.games.get(&game_id).unwrap();
+            match srv.current_game.as_ref() {
+                Some(game) => {
                     game.do_send(game_cmds::Stop { user_id, msg_id });
                 }
                 None => {
