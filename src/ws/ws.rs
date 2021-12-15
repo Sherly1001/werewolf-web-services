@@ -151,6 +151,18 @@ impl ChatServer {
     }
 
     pub fn new_game(&mut self, ctx: &mut Context<Self>) -> i64 {
+        if let Some(game) = Game::load_from_db(
+            ctx.address(),
+            self.db_pool.clone(),
+            self.app_state.id_generatator.clone(),
+            self.app_state.bot_id,
+        ) {
+            let id = game.id;
+            let addr = game.start();
+            self.games.insert(id, addr);
+            return id;
+        }
+
         let game_id = self .app_state
             .id_generatator
             .lock()

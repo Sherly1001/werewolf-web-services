@@ -18,6 +18,12 @@ pub fn create(
         .get_result(conn)
 }
 
+pub fn get(
+    conn: &PgConnection,
+) -> Option<Game> {
+    games::table.first(conn).ok()
+}
+
 pub fn delete(
     conn: &PgConnection,
     id: i64,

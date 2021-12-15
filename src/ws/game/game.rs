@@ -28,7 +28,7 @@ pub struct Game {
     pub bot_id: i64,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub enum GameChannel {
     GamePlay,
     WereWolf,
@@ -81,6 +81,50 @@ impl Game {
         s.add_channel(GameChannel::Cemetery, "cemetery".to_string()).unwrap();
 
         s
+    }
+
+    pub fn load_from_db(
+        addr: Addr<ChatServer>,
+        db_pool: DbPool,
+        id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
+        bot_id: i64,
+    ) -> Option<Self> {
+        let conn = get_conn(db_pool.clone());
+        let id = db::game::get(&conn)?.id;
+        let channels = db::game::get_channels(&conn, id).ok()?;
+        let users = db::game::get_users(&conn, id).ok()?;
+
+        let users = users.iter().map(|u| u.id).collect();
+        let channels = channels.iter()
+            .map(|cl| {
+                match cl.channel_name.as_str() {
+                    "gameplay" => Some((GameChannel::GamePlay, cl.id)),
+                    "werewolf" => Some((GameChannel::WereWolf, cl.id)),
+                    "cemetery" => Some((GameChannel::Cemetery, cl.id)),
+                    _ => return None,
+                }
+            })
+            .collect::<Option<HashMap<GameChannel, i64>>>()?;
+
+        Some(Self {
+            // game info
+            id,
+            channels,
+            users,
+            players: HashMap::new(),
+            is_started: false,
+            is_stopped: false,
+            is_day: true,
+            num_day: 0,
+
+            // other info
+            vote_starts: HashSet::new(),
+            vote_stops: HashSet::new(),
+            addr,
+            db_pool,
+            id_gen,
+            bot_id,
+        })
     }
 
     pub fn add_user(&mut self, user_id: i64) -> Result<(), String> {
@@ -202,6 +246,8 @@ impl Actor for Game {
 
 impl std::ops::Drop for Game {
     fn drop(&mut self) {
-        self.stop().ok();
+        if self.is_started {
+            self.stop().ok();
+        }
     }
 }
