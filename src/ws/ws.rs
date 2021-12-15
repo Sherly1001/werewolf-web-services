@@ -137,7 +137,7 @@ impl ChatServer {
         };
         let bc = Cmd::BroadCastMsg {
             user_id: bot_id.to_string(),
-            message_id: chat.channel_id.to_string(),
+            message_id: chat.id.to_string(),
             channel_id: chat.channel_id.to_string(),
             message: chat.message,
             reply_to: reply_to.map(|id| id.to_string()),
