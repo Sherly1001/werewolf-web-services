@@ -92,7 +92,9 @@ pub fn cmd_handler(
             let mut users = services::get_users(srv)?;
 
             for u in users.iter_mut() {
-                u.is_online = Some(srv.users.contains_key(&u.id.parse().unwrap()));
+                u.is_online = Some(
+                    srv.users.contains_key(&u.id.parse().unwrap())
+                    || u.id == srv.app_state.bot_id.to_string());
             }
 
             srv.send_to(&Cmd::GetUsersRes(users), ws_id);
