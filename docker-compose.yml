@@ -1,7 +1,7 @@
 version: "3.1"
 
 services:
-  postgres:
+  db:
     image: postgres
     restart: always
     ports:
@@ -10,3 +10,12 @@ services:
       POSTGRES_DB: actix
       POSTGRES_USER: actix
       POSTGRES_PASSWORD: actix
+  web:
+    build: ./
+    restart: always
+    ports:
+      - "3000:8080"
+    depends_on:
+      - db
+    links:
+      - db

@@ -7,7 +7,7 @@ Config database in [docker-compose.yml](https://github.com/Sherly1001/werewolf-w
 Add `DATABASE_URL=postgres://actix:actix@localhost/actix` environment variable to `.env`  
 Run following commands:
 ```sh
-sudo docker-compose up -d
+sudo docker-compose up -d db
 diesel migration run
 ```
 
@@ -18,6 +18,16 @@ diesel migration run
 ```
 
 ## run
+### docker
+To run in docker container rename database url with host `db` in file `.env`
+```
+DATABASE_URL=postgres://actix:actix@db/actix
+```
+Then start docker-compose
+```
+docker-compose up -d
+```
+
 ### local machine
 To run on localhost just run:
 ```sh
