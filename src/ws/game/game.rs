@@ -5,10 +5,9 @@ use snowflake::SnowflakeIdGenerator;
 use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
 
 use crate::{config::DbPool, db};
-
 use crate::ws::ChatServer;
 
-use super::characters::{player::Player, self};
+use super::characters::{player::Player, self, roles};
 
 pub struct Game {
     pub id: i64,
@@ -203,8 +202,8 @@ impl Game {
         let mut roles = HashMap::new();
 
         for (_, player) in self.players.iter_mut() {
-            let role_name = player.get_role_name().to_string();
-            *roles.entry(role_name).or_default() += 1;
+            let role_name = player.get_role_name();
+            *roles.entry(role_name.to_string()).or_default() += 1;
 
             let new_id1 = id_lock.real_time_generate();
             let new_id2 = id_lock.real_time_generate();
@@ -224,6 +223,16 @@ impl Game {
             self.channels.insert(
                 GameChannel::Personal(*player.get_playerid()), channel_id);
             *player.get_channelid() = channel_id;
+
+            if role_name == roles::WEREWOLF || role_name == roles::SUPERWOLF {
+                let new_id1 = id_lock.real_time_generate();
+                let werewolf = self.channels.get(&GameChannel::WereWolf)
+                    .ok_or("not found werewolf channel".to_string())?;
+
+                db::channel::set_pers(&conn, new_id1, *player.get_playerid(),
+                    *werewolf, true, true)
+                    .map_err(|err| err.to_string())?;
+            }
         }
 
         self.is_started = true;
