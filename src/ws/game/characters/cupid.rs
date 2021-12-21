@@ -1,4 +1,4 @@
-use super::player::{PlayerStatus, Player};
+use super::{player::{PlayerStatus, Player}, roles};
 
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ impl Cupid {
 
 impl Player for Cupid {
     fn get_role_name(&self) -> &'static str {
-        "Cupid"
+        roles::CUPID
     }
 
     fn get_status(&mut self) -> &mut PlayerStatus {

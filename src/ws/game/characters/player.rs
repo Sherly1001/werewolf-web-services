@@ -10,6 +10,7 @@ pub trait Player: std::fmt::Debug {
     fn get_status(&mut self) -> &mut PlayerStatus;
     fn get_playerid(&mut self) -> &mut i64;
     fn get_channelid(&mut self) -> &mut i64;
+
     fn on_day(&mut self);
     fn on_night(&mut self);
     fn on_start_game(&mut self);

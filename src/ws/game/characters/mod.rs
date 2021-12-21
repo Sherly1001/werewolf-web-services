@@ -17,6 +17,19 @@ pub mod fox;
 pub mod cupid;
 pub mod bettrayer;
 
+pub mod roles {
+    pub const VILLAGER:  &'static str = "Villager";
+    pub const WEREWOLF:  &'static str = "Werewolf";
+    pub const SUPERWOLF: &'static str = "Superwolf";
+    pub const SEER:      &'static str = "Seer";
+    pub const GUARD:     &'static str = "Guard";
+    pub const LYCAN:     &'static str = "Lycan";
+    pub const FOX:       &'static str = "Fox";
+    pub const WITCH:     &'static str = "Witch";
+    pub const CUPID:     &'static str = "Cupid";
+    pub const BETRAYER:  &'static str = "Betrayer";
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum FRR {
@@ -81,16 +94,16 @@ pub fn rand_roles(uids: &Vec<&i64>) -> Result<HashMap<i64, Box<dyn Player>>, Str
 
 fn new_role(role: &str, id: i64) -> Result<Box<dyn Player>, String> {
     match role {
-        "Villager" => Ok(Box::new(villager::Villager::new(id))),
-        "Werewolf" => Ok(Box::new(werewolf::Werewolf::new(id))),
-        "Superwolf" => Ok(Box::new(superwolf::Superwolf::new(id))),
-        "Seer" => Ok(Box::new(seer::Seer::new(id))),
-        "Guard" => Ok(Box::new(guard::Guard::new(id))),
-        "Lycan" => Ok(Box::new(lycan::Lycan::new(id))),
-        "Fox" => Ok(Box::new(fox::Fox::new(id))),
-        "Witch" => Ok(Box::new(witch::Witch::new(id))),
-        "Cupid" => Ok(Box::new(cupid::Cupid::new(id))),
-        "Betrayer" => Ok(Box::new(bettrayer::Betrayer::new(id))),
+        roles::VILLAGER => Ok(Box::new(villager::Villager::new(id))),
+        roles::WEREWOLF => Ok(Box::new(werewolf::Werewolf::new(id))),
+        roles::SUPERWOLF => Ok(Box::new(superwolf::Superwolf::new(id))),
+        roles::SEER => Ok(Box::new(seer::Seer::new(id))),
+        roles::GUARD => Ok(Box::new(guard::Guard::new(id))),
+        roles::LYCAN => Ok(Box::new(lycan::Lycan::new(id))),
+        roles::FOX => Ok(Box::new(fox::Fox::new(id))),
+        roles::WITCH => Ok(Box::new(witch::Witch::new(id))),
+        roles::CUPID => Ok(Box::new(cupid::Cupid::new(id))),
+        roles::BETRAYER => Ok(Box::new(bettrayer::Betrayer::new(id))),
         _ => Err(format!("not found role {}", role))
     }
 }
