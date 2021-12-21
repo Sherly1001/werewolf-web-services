@@ -36,6 +36,10 @@ pub fn start_game() -> String {
     format!("2/3 người chơi đã sẵn sàng, trò chơi chuẩn bị bắt đầu.")
 }
 
+pub fn on_start_game(role: &'static str) -> String {
+    format!("Chào mừng, vai của bạn là {}.", role)
+}
+
 pub fn roles_list(roles: &HashMap<String, usize>) -> String {
     format!("Danh sách nhân vật trong game: {:?}.", roles)
 }

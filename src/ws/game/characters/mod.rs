@@ -1,7 +1,10 @@
 use std::{collections::HashMap, fs::read_to_string};
 
+use actix::Addr;
 use rand::{Rng, prelude::SliceRandom};
 use serde::{Serialize, Deserialize};
+
+use crate::ws::ChatServer;
 
 use self::player::Player;
 
@@ -40,7 +43,10 @@ pub enum FRR {
 
 pub type RoleConfig<'a> = HashMap<usize, HashMap<&'a str, FRR>>;
 
-pub fn rand_roles(uids: &Vec<&i64>) -> Result<HashMap<i64, Box<dyn Player>>, String> {
+pub fn rand_roles(
+    uids: &Vec<&i64>,
+    addr: Addr<ChatServer>,
+) -> Result<HashMap<i64, Box<dyn Player>>, String> {
     let json = read_to_string("./jsons/role-config.json")
         .map_err(|err| err.to_string())?;
     let config = serde_json::from_str::<RoleConfig>(&json).unwrap();
@@ -84,7 +90,7 @@ pub fn rand_roles(uids: &Vec<&i64>) -> Result<HashMap<i64, Box<dyn Player>>, Str
     for (&role, &num) in rls.iter() {
         for _ in 0..num {
             let &id = uids.pop().ok_or("pop false".to_string())?;
-            let role = new_role(role, id)?;
+            let role = new_role(role, id, addr.clone())?;
             rs.insert(id, role);
         }
     }
@@ -92,18 +98,22 @@ pub fn rand_roles(uids: &Vec<&i64>) -> Result<HashMap<i64, Box<dyn Player>>, Str
     Ok(rs)
 }
 
-fn new_role(role: &str, id: i64) -> Result<Box<dyn Player>, String> {
+fn new_role(
+    role: &str,
+    id: i64,
+    addr: Addr<ChatServer>,
+) -> Result<Box<dyn Player>, String> {
     match role {
-        roles::VILLAGER => Ok(Box::new(villager::Villager::new(id))),
-        roles::WEREWOLF => Ok(Box::new(werewolf::Werewolf::new(id))),
-        roles::SUPERWOLF => Ok(Box::new(superwolf::Superwolf::new(id))),
-        roles::SEER => Ok(Box::new(seer::Seer::new(id))),
-        roles::GUARD => Ok(Box::new(guard::Guard::new(id))),
-        roles::LYCAN => Ok(Box::new(lycan::Lycan::new(id))),
-        roles::FOX => Ok(Box::new(fox::Fox::new(id))),
-        roles::WITCH => Ok(Box::new(witch::Witch::new(id))),
-        roles::CUPID => Ok(Box::new(cupid::Cupid::new(id))),
-        roles::BETRAYER => Ok(Box::new(bettrayer::Betrayer::new(id))),
+        roles::VILLAGER => Ok(Box::new(villager::Villager::new(id, addr))),
+        roles::WEREWOLF => Ok(Box::new(werewolf::Werewolf::new(id, addr))),
+        roles::SUPERWOLF => Ok(Box::new(superwolf::Superwolf::new(id, addr))),
+        roles::SEER => Ok(Box::new(seer::Seer::new(id, addr))),
+        roles::GUARD => Ok(Box::new(guard::Guard::new(id, addr))),
+        roles::LYCAN => Ok(Box::new(lycan::Lycan::new(id, addr))),
+        roles::FOX => Ok(Box::new(fox::Fox::new(id, addr))),
+        roles::WITCH => Ok(Box::new(witch::Witch::new(id, addr))),
+        roles::CUPID => Ok(Box::new(cupid::Cupid::new(id, addr))),
+        roles::BETRAYER => Ok(Box::new(bettrayer::Betrayer::new(id, addr))),
         _ => Err(format!("not found role {}", role))
     }
 }

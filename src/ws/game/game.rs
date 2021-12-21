@@ -215,7 +215,9 @@ impl Game {
         let mut info = self.info.lock().unwrap();
 
         let mut players = characters::rand_roles(
-            &info.users.iter().collect::<Vec<&i64>>())?;
+            &info.users.iter().collect::<Vec<&i64>>(),
+            self.addr.clone(),
+        )?;
 
         let conn = get_conn(self.db_pool.clone());
         let mut id_lock = self.id_gen.lock().unwrap();
@@ -256,6 +258,9 @@ impl Game {
         }
 
         info.players = players;
+
+        actix::Arbiter::spawn(Self::run_game_loop(self.info.clone()));
+
         info.is_started = true;
         Ok(roles)
     }
@@ -269,6 +274,12 @@ impl Game {
             .map_err(|err| err.to_string())?;
         info.is_stopped = true;
         Ok(())
+    }
+
+    async fn run_game_loop(info: Arc<Mutex<GameInfo>>) {
+        for (_, player) in info.lock().unwrap().players.iter_mut() {
+            player.on_start_game();
+        }
     }
 }
 
