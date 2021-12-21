@@ -16,6 +16,10 @@ pub fn aready_in_game() -> String {
     format!("Bạn đã tham gia trò chơi rồi, hãy đợi trò chơi bắt đầu.")
 }
 
+pub fn leave_on_started() -> String {
+    format!("Trò chơi đã bắt đầu, hãy đợi trò chơi kết thúc!")
+}
+
 pub fn max_player() -> String {
     format!("Đã đạt số lượng người chơi tối đa.")
 }

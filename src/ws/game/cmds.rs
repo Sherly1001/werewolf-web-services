@@ -117,6 +117,14 @@ impl Handler<Leave> for Game {
     fn handle(&mut self, msg: Leave, _: &mut Self::Context) -> Self::Result {
         if !self.must_in_game(msg.user_id, msg.msg_id) { return }
 
+        if self.is_started {
+            return self.addr.do_send(BotMsg {
+                channel_id: 1,
+                msg: ttp::leave_on_started(),
+                reply_to: Some(msg.msg_id),
+            })
+        }
+
         if let Err(err) = self.remove_user(msg.user_id) {
             self.addr.do_send(BotMsg {
                 channel_id: 1,
