@@ -1,5 +1,7 @@
 use actix::{Message, Handler};
 
+use crate::ws::cmd_parser::GameCmd;
+
 use super::{Game, game::GameChannel};
 use super::text_templates as ttp;
 
@@ -43,8 +45,7 @@ pub struct BotMsg {
 #[rtype(result = "()")]
 pub struct GameMsg {
     pub game_id: i64,
-    pub channel_id: i64,
-    pub msg: String,
+    pub cmd: GameCmd,
 }
 
 #[derive(Message, Debug)]
