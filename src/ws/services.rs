@@ -99,6 +99,15 @@ pub fn get_channel_users(
         .unwrap_or(vec![])
 }
 
+pub fn get_game_users(
+    srv: &ChatServer,
+    game_id: i64,
+) -> Vec<User> {
+    let conn = get_conn(srv.db_pool.clone());
+    db::game::get_users(&conn, game_id)
+        .unwrap_or(vec![])
+}
+
 pub fn get_game_from_user(
     srv: &ChatServer,
     user_id: i64,

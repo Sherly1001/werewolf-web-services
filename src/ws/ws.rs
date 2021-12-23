@@ -252,7 +252,20 @@ impl Handler<BotMsg> for ChatServer {
 impl Handler<GameMsg> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, _msg: GameMsg, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: GameMsg, _ctx: &mut Self::Context) -> Self::Result {
+        let uids = services::get_game_users(self, msg.game_id)
+            .iter()
+            .map(|u| u.id)
+            .collect::<Vec<i64>>();
+
+        let cmd = &Cmd::GameCmd(msg.cmd);
+        for (uid, ws) in self.users.iter() {
+            if !uids.contains(uid) { continue }
+            for (wsi, client) in self.clients.iter() {
+                if !ws.contains(wsi) { continue }
+                client.do_send(Msg(cmd.to_string())).ok();
+            }
+        }
     }
 }
 
