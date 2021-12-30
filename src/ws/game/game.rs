@@ -259,7 +259,8 @@ impl Game {
 
         info.players = players;
 
-        actix::Arbiter::spawn(run_game_loop(self.info.clone()));
+        let game_loop = GameLoop::new(self.info.clone());
+        actix::Arbiter::spawn(game_loop);
 
         info.is_started = true;
         Ok(roles)
@@ -289,8 +290,32 @@ impl std::ops::Drop for Game {
     }
 }
 
-async fn run_game_loop(info: Arc<Mutex<GameInfo>>) {
-    for (_, player) in info.lock().unwrap().players.iter_mut() {
-        player.on_start_game();
+
+struct GameLoop {
+    info: Arc<Mutex<GameInfo>>,
+}
+
+impl GameLoop {
+    async fn new(info: Arc<Mutex<GameInfo>>) {
+        let game = Self {
+            info,
+        };
+        game.run().await;
     }
+
+    async fn run(&self) {
+        for (_, player) in self.info.lock().unwrap().players.iter_mut() {
+            player.on_start_game();
+        }
+
+        // while !self.info.lock().unwrap().is_ended {
+        // }
+
+        for (_, player) in self.info.lock().unwrap().players.iter_mut() {
+            player.on_end_game();
+        }
+
+        self.info.lock().unwrap().is_ended = true;
+    }
+
 }

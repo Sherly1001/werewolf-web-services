@@ -227,16 +227,18 @@ impl Handler<Stop> for Game {
     fn handle(&mut self, msg: Stop, _: &mut Self::Context) -> Self::Result {
         if !self.must_in_game(msg.user_id, msg.msg_id) { return }
 
-        self.info.lock().unwrap().vote_stops.insert(msg.user_id);
+        if !self.info.lock().unwrap().is_ended {
+            self.info.lock().unwrap().vote_stops.insert(msg.user_id);
 
-        let numvote = self.info.lock().unwrap().vote_stops.len();
-        let numplayer = self.info.lock().unwrap().users.len();
-        if numvote * 3 < numplayer * 2 {
-            return self.addr.do_send(BotMsg {
-                channel_id: 1,
-                msg: ttp::user_stop(msg.user_id, numvote, numplayer),
-                reply_to: Some(msg.msg_id),
-            });
+            let numvote = self.info.lock().unwrap().vote_stops.len();
+            let numplayer = self.info.lock().unwrap().users.len();
+            if numvote * 3 < numplayer * 2 {
+                return self.addr.do_send(BotMsg {
+                    channel_id: 1,
+                    msg: ttp::user_stop(msg.user_id, numvote, numplayer),
+                    reply_to: Some(msg.msg_id),
+                });
+            }
         }
 
         if let Err(err) = self.stop() {
