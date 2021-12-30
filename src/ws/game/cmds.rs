@@ -109,6 +109,12 @@ impl Handler<Join> for Game {
                 self.info.lock().unwrap().users.len()),
             reply_to: Some(msg.msg_id),
         });
+        self.addr.do_send(BotMsg {
+            channel_id: *self.info.lock().unwrap()
+                .channels.get(&GameChannel::GamePlay).unwrap(),
+            msg: format!("Hi <@{}>.", msg.user_id),
+            reply_to: None,
+        });
     }
 }
 
@@ -140,6 +146,12 @@ impl Handler<Leave> for Game {
             msg: ttp::user_leave(msg.user_id,
                 self.info.lock().unwrap().users.len()),
             reply_to: Some(msg.msg_id),
+        });
+        self.addr.do_send(BotMsg {
+            channel_id: *self.info.lock().unwrap()
+                .channels.get(&GameChannel::GamePlay).unwrap(),
+            msg: format!("Bye <@{}>.", msg.user_id),
+            reply_to: None,
         });
     }
 }
