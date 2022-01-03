@@ -3,60 +3,12 @@ use diesel::{r2d2::{PooledConnection, ConnectionManager}, PgConnection};
 use snowflake::SnowflakeIdGenerator;
 
 use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
-use std::pin::Pin;
-
-use std::future::Future;
-use std::task::{self, Poll, Waker};
-
-
-#[derive(Clone, Debug)]
-pub struct NextFut {
-    next: Arc<Mutex<bool>>,
-    waker: Arc<Mutex<Option<Waker>>>,
-}
-
-impl NextFut {
-    pub fn new() -> Self {
-        Self {
-            next: Arc::new(Mutex::new(false)),
-            waker: Arc::new(Mutex::new(None)),
-        }
-    }
-
-    pub fn wait(&self) -> NextFut {
-        NextFut {
-            next: self.next.clone(),
-            waker: self.waker.clone(),
-        }
-    }
-
-    pub fn wake(&self) {
-        *self.next.lock().unwrap() = true;
-        let waker = self.waker.lock().unwrap().clone();
-        if let Some(waker) = waker {
-            waker.wake();
-        }
-    }
-}
-
-impl Future for NextFut {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
-        if *self.next.lock().unwrap() {
-            *self.next.lock().unwrap() = false;
-            *self.waker.lock().unwrap() = None;
-            Poll::Ready(())
-        } else {
-            *self.waker.lock().unwrap() = Some(cx.waker().clone());
-            Poll::Pending
-        }
-    }
-}
 
 use crate::{config::DbPool, db};
-use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
+use crate::ws::ChatServer;
 
+use super::game_loop::GameLoop;
+use super::next::NextFut;
 use super::characters::{player::Player, self, roles};
 
 pub struct GameInfo {
@@ -345,69 +297,5 @@ impl std::ops::Drop for Game {
         if self.info.lock().unwrap().is_started {
             self.stop().ok();
         }
-    }
-}
-
-
-struct GameLoop {
-    info: Arc<Mutex<GameInfo>>,
-    addr: Addr<ChatServer>,
-}
-
-impl GameLoop {
-    async fn new(info: Arc<Mutex<GameInfo>>, addr: Addr<ChatServer>) {
-        let game = Self {
-            info,
-            addr,
-        };
-        game.run().await;
-    }
-
-    async fn run(&self) {
-        for (_, player) in self.info.lock().unwrap().players.iter_mut() {
-            player.on_start_game();
-        }
-
-        let next = self.info.lock().unwrap().next_flag.clone();
-
-        while !self.info.lock().unwrap().is_ended {
-            let is_day = self.info.lock().unwrap().is_day;
-            let num_day = self.info.lock().unwrap().num_day;
-
-            let gameplay = *self.info
-                .lock()
-                .unwrap()
-                .channels
-                .get(&GameChannel::GamePlay)
-                .unwrap();
-
-            println!("start");
-
-            self.addr.do_send(BotMsg {
-                channel_id: gameplay,
-                msg: ttp::new_pharse(num_day, is_day),
-                reply_to: None,
-            });
-
-            for (_, player) in self.info.lock().unwrap().players.iter_mut() {
-                player.on_phase(is_day);
-            }
-
-            next.wait().await;
-
-            println!("stop");
-
-            if !is_day { self.info.lock().unwrap().num_day += 1; }
-            self.info.lock().unwrap().is_day = !is_day;
-            if self.info.lock().unwrap().num_day > 5 {
-                self.info.lock().unwrap().is_ended = true;
-            }
-        }
-
-        for (_, player) in self.info.lock().unwrap().players.iter_mut() {
-            player.on_end_game();
-        }
-
-        self.info.lock().unwrap().is_ended = true;
     }
 }
