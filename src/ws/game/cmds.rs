@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use actix::{Message, Handler};
 
 use crate::ws::cmd_parser::GameCmd;
@@ -31,6 +33,14 @@ pub struct Start {
 pub struct Stop {
     pub user_id: i64,
     pub msg_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Next {
+    pub user_id: i64,
+    pub msg_id: i64,
+    pub channel_id: i64,
 }
 
 #[derive(Message, Debug)]
@@ -259,5 +269,64 @@ impl Handler<Stop> for Game {
         for &user in self.info.lock().unwrap().users.iter() {
             self.addr.do_send(UpdatePers(user));
         }
+    }
+}
+
+impl Handler<Next> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Next, _: &mut Self::Context) -> Self::Result {
+        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
+
+        let gameplay = *self.info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
+
+        if msg.channel_id != gameplay {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: ttp::must_in_channel(gameplay),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
+        if !self.info.lock().unwrap().is_started {
+            return self.addr.do_send(BotMsg {
+                channel_id: gameplay,
+                msg: ttp::game_is_not_started(),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
+        {
+            let info = self.info.lock().unwrap();
+            if info.is_ended || info.is_stopped {
+                return self.addr.do_send(BotMsg {
+                    channel_id: gameplay,
+                    msg: ttp::stop_game(),
+                    reply_to: Some(msg.msg_id),
+                });
+            }
+        }
+
+        self.info.lock().unwrap().vote_nexts.insert(msg.user_id);
+
+        let numvote = self.info.lock().unwrap().vote_nexts.len();
+        let numplayer = self.info.lock().unwrap().users.len();
+        if numvote * 3 < numplayer * 2 {
+            return self.addr.do_send(BotMsg {
+                channel_id: gameplay,
+                msg: ttp::user_next(msg.user_id, numvote, numplayer),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
+        self.info.lock().unwrap().vote_nexts = HashSet::new();
+
+        let next = self.info.lock().unwrap().next_flag.clone();
+        next.wake();
     }
 }

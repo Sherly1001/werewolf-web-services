@@ -185,6 +185,20 @@ fn game_commands(
                 }
             }
         }
+        "next" => {
+            if let Some(game) = srv.get_user_game(user_id) {
+                game.do_send(game_cmds::Next { user_id, msg_id, channel_id });
+                return Ok(());
+            }
+            match srv.current_game.as_ref() {
+                Some(game) => {
+                    game.do_send(game_cmds::Next { user_id, msg_id, channel_id });
+                }
+                None => {
+                    srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
+                }
+            }
+        }
         _ => {}
     }
 

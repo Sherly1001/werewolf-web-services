@@ -3,9 +3,59 @@ use diesel::{r2d2::{PooledConnection, ConnectionManager}, PgConnection};
 use snowflake::SnowflakeIdGenerator;
 
 use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
+use std::pin::Pin;
+
+use std::future::Future;
+use std::task::{self, Poll, Waker};
+
+
+#[derive(Clone, Debug)]
+pub struct NextFut {
+    next: Arc<Mutex<bool>>,
+    waker: Arc<Mutex<Option<Waker>>>,
+}
+
+impl NextFut {
+    pub fn new() -> Self {
+        Self {
+            next: Arc::new(Mutex::new(false)),
+            waker: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    pub fn wait(&self) -> NextFut {
+        NextFut {
+            next: self.next.clone(),
+            waker: self.waker.clone(),
+        }
+    }
+
+    pub fn wake(&self) {
+        *self.next.lock().unwrap() = true;
+        let waker = self.waker.lock().unwrap().clone();
+        if let Some(waker) = waker {
+            waker.wake();
+        }
+    }
+}
+
+impl Future for NextFut {
+    type Output = ();
+
+    fn poll(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
+        if *self.next.lock().unwrap() {
+            *self.next.lock().unwrap() = false;
+            *self.waker.lock().unwrap() = None;
+            Poll::Ready(())
+        } else {
+            *self.waker.lock().unwrap() = Some(cx.waker().clone());
+            Poll::Pending
+        }
+    }
+}
 
 use crate::{config::DbPool, db};
-use crate::ws::ChatServer;
+use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
 
 use super::characters::{player::Player, self, roles};
 
@@ -21,7 +71,9 @@ pub struct GameInfo {
 
     pub vote_starts: HashSet<i64>,
     pub vote_stops: HashSet<i64>,
+    pub vote_nexts: HashSet<i64>,
 
+    pub next_flag: NextFut,
 }
 
 pub struct Game {
@@ -73,6 +125,9 @@ impl Game {
 
             vote_starts: HashSet::new(),
             vote_stops: HashSet::new(),
+            vote_nexts: HashSet::new(),
+
+            next_flag: NextFut::new(),
         }));
 
         let mut s = Self {
@@ -127,6 +182,9 @@ impl Game {
 
             vote_starts: HashSet::new(),
             vote_stops: HashSet::new(),
+            vote_nexts: HashSet::new(),
+
+            next_flag: NextFut::new(),
         }));
 
         Some(Self {
@@ -259,7 +317,7 @@ impl Game {
 
         info.players = players;
 
-        let game_loop = GameLoop::new(self.info.clone());
+        let game_loop = GameLoop::new(self.info.clone(), self.addr.clone());
         actix::Arbiter::spawn(game_loop);
 
         info.is_started = true;
@@ -293,12 +351,14 @@ impl std::ops::Drop for Game {
 
 struct GameLoop {
     info: Arc<Mutex<GameInfo>>,
+    addr: Addr<ChatServer>,
 }
 
 impl GameLoop {
-    async fn new(info: Arc<Mutex<GameInfo>>) {
+    async fn new(info: Arc<Mutex<GameInfo>>, addr: Addr<ChatServer>) {
         let game = Self {
             info,
+            addr,
         };
         game.run().await;
     }
@@ -308,8 +368,41 @@ impl GameLoop {
             player.on_start_game();
         }
 
-        // while !self.info.lock().unwrap().is_ended {
-        // }
+        let next = self.info.lock().unwrap().next_flag.clone();
+
+        while !self.info.lock().unwrap().is_ended {
+            let is_day = self.info.lock().unwrap().is_day;
+            let num_day = self.info.lock().unwrap().num_day;
+
+            let gameplay = *self.info
+                .lock()
+                .unwrap()
+                .channels
+                .get(&GameChannel::GamePlay)
+                .unwrap();
+
+            println!("start");
+
+            self.addr.do_send(BotMsg {
+                channel_id: gameplay,
+                msg: ttp::new_pharse(num_day, is_day),
+                reply_to: None,
+            });
+
+            for (_, player) in self.info.lock().unwrap().players.iter_mut() {
+                player.on_phase(is_day);
+            }
+
+            next.wait().await;
+
+            println!("stop");
+
+            if !is_day { self.info.lock().unwrap().num_day += 1; }
+            self.info.lock().unwrap().is_day = !is_day;
+            if self.info.lock().unwrap().num_day > 5 {
+                self.info.lock().unwrap().is_ended = true;
+            }
+        }
 
         for (_, player) in self.info.lock().unwrap().players.iter_mut() {
             player.on_end_game();
@@ -317,5 +410,4 @@ impl GameLoop {
 
         self.info.lock().unwrap().is_ended = true;
     }
-
 }

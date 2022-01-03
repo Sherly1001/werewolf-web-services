@@ -12,6 +12,10 @@ pub fn game_is_started() -> String {
     format!("Trò chơi đã bắt đầu rồi.")
 }
 
+pub fn game_is_not_started() -> String {
+    format!("Trò chơi chưa bắt đầu.")
+}
+
 pub fn aready_in_game() -> String {
     format!("Bạn đã tham gia trò chơi rồi, hãy đợi trò chơi bắt đầu.")
 }
@@ -66,4 +70,15 @@ pub fn user_start(user_id: i64, numvote: usize, numplayer: usize) -> String {
 pub fn user_stop(user_id: i64, numvote: usize, numplayer: usize) -> String {
     format!("Người chơi <@{}> muốn dừng trò chơi. {}/{}",
             user_id, numvote, numplayer)
+}
+
+pub fn user_next(user_id: i64, numvote: usize, numplayer: usize) -> String {
+    format!("Người chơi <@{}> muốn chuyển sang phase tiếp theo. {}/{}",
+            user_id, numvote, numplayer)
+}
+
+pub fn new_pharse(num_day:i16, is_day: bool) -> String {
+    format!("{} {} bắt đầu.",
+            if is_day { "Ngày" } else { "Đêm" },
+            num_day)
 }
