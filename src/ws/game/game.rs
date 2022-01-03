@@ -76,6 +76,30 @@ pub struct GameInfo {
     pub next_flag: NextFut,
 }
 
+impl GameInfo {
+    pub fn new(
+        channels: HashMap<GameChannel, i64>,
+        users: HashSet<i64>,
+    ) -> Self {
+        Self {
+            channels,
+            users,
+            players: HashMap::new(),
+            is_started: false,
+            is_ended: false,
+            is_stopped: false,
+            is_day: true,
+            num_day: 0,
+
+            vote_starts: HashSet::new(),
+            vote_stops: HashSet::new(),
+            vote_nexts: HashSet::new(),
+
+            next_flag: NextFut::new(),
+        }
+    }
+}
+
 pub struct Game {
     pub id: i64,
     pub addr: Addr<ChatServer>,
@@ -113,22 +137,10 @@ impl Game {
         let conn = get_conn(db_pool.clone());
         db::game::create(&conn, id).unwrap();
 
-        let info = Arc::new(Mutex::new(GameInfo {
-            channels: HashMap::new(),
-            users: HashSet::new(),
-            players: HashMap::new(),
-            is_started: false,
-            is_ended: false,
-            is_stopped: false,
-            is_day: true,
-            num_day: 0,
-
-            vote_starts: HashSet::new(),
-            vote_stops: HashSet::new(),
-            vote_nexts: HashSet::new(),
-
-            next_flag: NextFut::new(),
-        }));
+        let info = Arc::new(Mutex::new(GameInfo::new(
+            HashMap::new(),
+            HashSet::new(),
+        )));
 
         let mut s = Self {
             id,
@@ -170,22 +182,10 @@ impl Game {
             .collect::<Option<HashMap<GameChannel, i64>>>()?;
 
 
-        let info = Arc::new(Mutex::new(GameInfo {
+        let info = Arc::new(Mutex::new(GameInfo::new(
             channels,
             users,
-            players: HashMap::new(),
-            is_started: false,
-            is_ended: false,
-            is_stopped: false,
-            is_day: true,
-            num_day: 0,
-
-            vote_starts: HashSet::new(),
-            vote_stops: HashSet::new(),
-            vote_nexts: HashSet::new(),
-
-            next_flag: NextFut::new(),
-        }));
+        )));
 
         Some(Self {
             id,
