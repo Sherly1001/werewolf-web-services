@@ -26,6 +26,7 @@ pub struct GameInfo {
     pub vote_nexts: HashSet<i64>,
 
     pub next_flag: NextFut,
+    pub timmer: (u64, u64, u64),
 }
 
 impl GameInfo {
@@ -48,6 +49,7 @@ impl GameInfo {
             vote_nexts: HashSet::new(),
 
             next_flag: NextFut::new(),
+            timmer: (180, 60, 30),
         }
     }
 }

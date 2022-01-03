@@ -82,3 +82,24 @@ pub fn new_pharse(num_day:i16, is_day: bool) -> String {
             if is_day { "Ngày" } else { "Đêm" },
             num_day)
 }
+
+pub fn timeout(mut count: u64) -> String {
+    let h = count / 3600;
+    count -= h * 3600;
+    let m = count / 60;
+    count -= m * 60;
+
+    let mut s = String::from("Còn");
+    if h > 0 {
+        s += format!(" {} giờ", h).as_str();
+    }
+    if m > 0 {
+        s += format!(" {} phút", m).as_str();
+    }
+    if count > 0 {
+        s += format!(" {} giây", count).as_str();
+    }
+    s += ".";
+
+    s
+}
