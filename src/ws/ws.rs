@@ -151,19 +151,7 @@ impl ChatServer {
     }
 
     pub fn new_game(&mut self, ctx: &mut Context<Self>) -> Addr<Game> {
-        if let Some(game) = Game::load_from_db(
-            ctx.address(),
-            self.db_pool.clone(),
-            self.app_state.id_generatator.clone(),
-            self.app_state.bot_id,
-        ) {
-            let id = game.id;
-            let addr = game.start();
-            self.games.insert(id, addr.clone());
-            return addr;
-        }
-
-        let game_id = self .app_state
+        let game_id = self.app_state
             .id_generatator
             .lock()
             .unwrap()
@@ -189,6 +177,19 @@ impl ChatServer {
 
 impl Actor for ChatServer {
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        if let Some(game) = Game::load_from_db(
+            ctx.address(),
+            self.db_pool.clone(),
+            self.app_state.id_generatator.clone(),
+            self.app_state.bot_id,
+        ) {
+            let id = game.id;
+            let addr = game.start();
+            self.games.insert(id, addr.clone());
+        }
+    }
 }
 
 impl Handler<Connect> for ChatServer {

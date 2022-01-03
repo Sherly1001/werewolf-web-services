@@ -7,6 +7,8 @@ use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
 use crate::{config::DbPool, db};
 use crate::ws::ChatServer;
 
+use super::game_loop::GameLoop;
+use super::next::NextFut;
 use super::characters::{player::Player, self, roles};
 
 pub struct GameInfo {
@@ -21,7 +23,35 @@ pub struct GameInfo {
 
     pub vote_starts: HashSet<i64>,
     pub vote_stops: HashSet<i64>,
+    pub vote_nexts: HashSet<i64>,
 
+    pub next_flag: NextFut,
+    pub timmer: (u64, u64, u64),
+}
+
+impl GameInfo {
+    pub fn new(
+        channels: HashMap<GameChannel, i64>,
+        users: HashSet<i64>,
+    ) -> Self {
+        Self {
+            channels,
+            users,
+            players: HashMap::new(),
+            is_started: false,
+            is_ended: false,
+            is_stopped: false,
+            is_day: true,
+            num_day: 0,
+
+            vote_starts: HashSet::new(),
+            vote_stops: HashSet::new(),
+            vote_nexts: HashSet::new(),
+
+            next_flag: NextFut::new(),
+            timmer: (180, 60, 30),
+        }
+    }
 }
 
 pub struct Game {
@@ -61,19 +91,10 @@ impl Game {
         let conn = get_conn(db_pool.clone());
         db::game::create(&conn, id).unwrap();
 
-        let info = Arc::new(Mutex::new(GameInfo {
-            channels: HashMap::new(),
-            users: HashSet::new(),
-            players: HashMap::new(),
-            is_started: false,
-            is_ended: false,
-            is_stopped: false,
-            is_day: true,
-            num_day: 0,
-
-            vote_starts: HashSet::new(),
-            vote_stops: HashSet::new(),
-        }));
+        let info = Arc::new(Mutex::new(GameInfo::new(
+            HashMap::new(),
+            HashSet::new(),
+        )));
 
         let mut s = Self {
             id,
@@ -115,19 +136,10 @@ impl Game {
             .collect::<Option<HashMap<GameChannel, i64>>>()?;
 
 
-        let info = Arc::new(Mutex::new(GameInfo {
+        let info = Arc::new(Mutex::new(GameInfo::new(
             channels,
             users,
-            players: HashMap::new(),
-            is_started: false,
-            is_ended: false,
-            is_stopped: false,
-            is_day: true,
-            num_day: 0,
-
-            vote_starts: HashSet::new(),
-            vote_stops: HashSet::new(),
-        }));
+        )));
 
         Some(Self {
             id,
@@ -259,7 +271,8 @@ impl Game {
 
         info.players = players;
 
-        actix::Arbiter::spawn(run_game_loop(self.info.clone()));
+        let game_loop = GameLoop::new(self.info.clone(), self.addr.clone());
+        actix::Arbiter::spawn(game_loop);
 
         info.is_started = true;
         Ok(roles)
@@ -286,11 +299,5 @@ impl std::ops::Drop for Game {
         if self.info.lock().unwrap().is_started {
             self.stop().ok();
         }
-    }
-}
-
-async fn run_game_loop(info: Arc<Mutex<GameInfo>>) {
-    for (_, player) in info.lock().unwrap().players.iter_mut() {
-        player.on_start_game();
     }
 }
