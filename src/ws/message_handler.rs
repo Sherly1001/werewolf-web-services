@@ -1,8 +1,8 @@
-use actix::Context;
+use actix::{Context, Message, Handler};
 
 use crate::ws::game::{cmds as game_cmds, text_templates as ttp};
 
-use super::{cmd_parser::Cmd, services, ChatServer};
+use super::{cmd_parser::Cmd, services, ChatServer, game::Game};
 
 pub fn msg_handler(
     srv: &mut ChatServer,
@@ -149,55 +149,55 @@ fn game_commands(
         }
         "leave" => {
             must_in_channel(1, channel_id)?;
-            if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Leave { user_id, msg_id });
-            } else {
-                srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
-            }
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Leave {
+                user_id,
+                msg_id,
+            })?;
         }
         "start" => {
             must_in_channel(1, channel_id)?;
-            if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Start { user_id, msg_id });
-                return Ok(());
-            }
-            match srv.current_game.as_ref() {
-                Some(game) => {
-                    game.do_send(game_cmds::Start { user_id, msg_id });
-                }
-                None => {
-                    srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
-                }
-            }
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Start {
+                user_id,
+                msg_id,
+            })?;
         }
         "stop" => {
             must_in_channel(1, channel_id)?;
-            if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Stop { user_id, msg_id });
-                return Ok(());
-            }
-            match srv.current_game.as_ref() {
-                Some(game) => {
-                    game.do_send(game_cmds::Stop { user_id, msg_id });
-                }
-                None => {
-                    srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
-                }
-            }
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Stop {
+                user_id,
+                msg_id,
+            })?;
         }
         "next" => {
-            if let Some(game) = srv.get_user_game(user_id) {
-                game.do_send(game_cmds::Next { user_id, msg_id, channel_id });
-                return Ok(());
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Next {
+                user_id,
+                msg_id,
+                channel_id,
+            })?;
+        }
+        "vote" => {
+            if cmds.len() != 2 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "vote <player>",
+                ));
             }
-            match srv.current_game.as_ref() {
-                Some(game) => {
-                    game.do_send(game_cmds::Next { user_id, msg_id, channel_id });
-                }
-                None => {
-                    srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
-                }
+
+            let vote_for;
+            if let Ok(id) = cmds[1].parse() {
+                vote_for = Err(id);
+            } else {
+                let len = cmds[1].len();
+                vote_for = Ok(cmds[1][2..len-1].parse::<i64>()
+                    .map_err(|err| err.to_string())?);
             }
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Vote {
+                user_id,
+                msg_id,
+                channel_id,
+                vote_for,
+            })?;
         }
         _ => {}
     }
@@ -211,4 +211,33 @@ fn must_in_channel(
 ) -> Result<(), String> {
     if channel_id == current_channel_id { Ok(()) }
     else { Err(ttp::must_in_channel(channel_id)) }
+}
+
+fn send_cmd<M>(
+    srv: &mut ChatServer,
+    user_id: i64,
+    channel_id: i64,
+    msg_id: i64,
+    cmd: M,
+) -> Result<(), String>
+where
+    M: Message + Send + 'static,
+    M::Result: Send,
+    Game: Handler<M>,
+{
+    if let Some(game) = srv.get_user_game(user_id) {
+        game.do_send(cmd);
+        return Ok(());
+    }
+
+    match srv.current_game.as_ref() {
+        Some(game) => {
+            game.do_send(cmd);
+        }
+        None => {
+            srv.bot_send(channel_id, ttp::not_in_game(), Some(msg_id));
+        }
+    }
+
+    Ok(())
 }

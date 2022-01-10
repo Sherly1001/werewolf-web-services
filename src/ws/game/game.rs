@@ -21,6 +21,7 @@ pub struct GameInfo {
     pub is_day: bool,
     pub num_day: i16,
 
+    pub vote_kill: HashMap<i64, i64>,
     pub vote_starts: HashSet<i64>,
     pub vote_stops: HashSet<i64>,
     pub vote_nexts: HashSet<i64>,
@@ -44,6 +45,7 @@ impl GameInfo {
             is_day: true,
             num_day: 0,
 
+            vote_kill: HashMap::new(),
             vote_starts: HashSet::new(),
             vote_stops: HashSet::new(),
             vote_nexts: HashSet::new(),
@@ -52,14 +54,33 @@ impl GameInfo {
             timmer: (180, 60, 30),
         }
     }
+
+    pub fn get_alives(&self) -> (Vec<i64>, Vec<i64>) {
+        let mut alive = vec![];
+        let mut died = vec![];
+
+        for (uid, p) in self.players.iter() {
+            if p.is_alive() {
+                alive.push(*uid);
+            } else {
+                died.push(*uid);
+            }
+        }
+
+        alive.sort();
+        died.sort();
+        (alive, died)
+    }
 }
 
+#[derive(Clone)]
 pub struct Game {
     pub id: i64,
     pub addr: Addr<ChatServer>,
     pub db_pool: DbPool,
     pub id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
     pub bot_id: i64,
+    pub bot_prefix: String,
     pub info: Arc<Mutex<GameInfo>>,
 }
 
@@ -71,7 +92,7 @@ pub enum GameChannel {
     Personal(i64),
 }
 
-fn get_conn(pool: DbPool) -> PooledConnection<ConnectionManager<PgConnection>> {
+pub fn get_conn(pool: DbPool) -> PooledConnection<ConnectionManager<PgConnection>> {
     loop {
         match pool.get_timeout(std::time::Duration::from_secs(3)) {
             Ok(conn) => break conn,
@@ -87,6 +108,7 @@ impl Game {
         db_pool: DbPool,
         id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
         bot_id: i64,
+        bot_prefix: String,
     ) -> Self {
         let conn = get_conn(db_pool.clone());
         db::game::create(&conn, id).unwrap();
@@ -102,6 +124,7 @@ impl Game {
             db_pool,
             id_gen,
             bot_id,
+            bot_prefix,
             info,
         };
 
@@ -117,6 +140,7 @@ impl Game {
         db_pool: DbPool,
         id_gen: Arc<Mutex<SnowflakeIdGenerator>>,
         bot_id: i64,
+        bot_prefix: String,
     ) -> Option<Self> {
         let conn = get_conn(db_pool.clone());
         let id = db::game::get(&conn)?.id;
@@ -147,6 +171,7 @@ impl Game {
             db_pool,
             id_gen,
             bot_id,
+            bot_prefix,
             info,
         })
     }
@@ -271,7 +296,7 @@ impl Game {
 
         info.players = players;
 
-        let game_loop = GameLoop::new(self.info.clone(), self.addr.clone());
+        let game_loop = GameLoop::new(self.clone());
         actix::Arbiter::spawn(game_loop);
 
         info.is_started = true;

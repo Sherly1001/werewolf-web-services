@@ -2,7 +2,7 @@ use actix::Addr;
 
 use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum PlayerStatus {
     Alive,
     Killed,
@@ -18,6 +18,15 @@ pub trait Player {
 
     fn on_day(&mut self);
     fn on_night(&mut self);
+
+    fn is_alive(&self) -> bool {
+        unsafe {
+            let ptr = self as *const Self;
+            let ptr = ptr as *mut Self;
+            let ptr = &mut *ptr;
+            *ptr.get_status() != PlayerStatus::Killed
+        }
+    }
 
     fn on_end_game(&mut self) {}
 
