@@ -77,10 +77,11 @@ pub fn user_next(user_id: i64, numvote: usize, numplayer: usize) -> String {
             user_id, numvote, numplayer)
 }
 
-pub fn new_pharse(num_day:i16, is_day: bool) -> String {
-    format!("{} {} bắt đầu.",
-            if is_day { "Ngày" } else { "Đêm" },
-            num_day)
+pub fn new_pharse(bot_prefix: &str, num_day: i16, is_day: bool) -> String {
+    match is_day {
+        true => new_day(bot_prefix, num_day),
+        false => new_night(),
+    }
 }
 
 pub fn timeout(mut count: u64) -> String {
@@ -102,4 +103,63 @@ pub fn timeout(mut count: u64) -> String {
     s += ".";
 
     s
+}
+
+pub fn vote_kill(user_id: i64, vote_for: i64) -> String {
+    format!("Người chơi <@{}> đã biểu quyết loại <@{}> ra khỏi làng.",
+            user_id, vote_for)
+}
+
+pub fn wrong_cmd_format(prefix: &str, s: &str) -> String {
+    format!("Không đúng định dạnh lệnh, `{}{}`", prefix, s)
+}
+
+pub fn player_not_in_game(user_id: i64) -> String {
+    format!("Người chơi <@{}> không ở trong game này.", user_id)
+}
+
+pub fn player_died() -> String {
+    format!("Người ta đã hẹo rồi con vote làm gì.")
+}
+
+pub fn invalid_index(from: usize, to: usize) -> String {
+    format!("Giá trị không hợp lệ, chọn từ {} đến {}.", from, to)
+}
+
+pub fn alive_list(list: &Vec<i64>) -> String {
+    let mut s = String::from("Danh sách những người chơi còn sống:\n");
+
+    for (idx, id) in list.iter().enumerate() {
+        s += format!("{}: <@{}>\n", idx + 1, id).as_str();
+    }
+
+    s
+}
+
+pub fn execution(top_vote: Option<(i64, u16)>) -> String {
+    match top_vote {
+        None => format!(
+            "Không có ai bị hành hình. Trò chơi sẽ tiếp tục. Hãy cẩn thân để sống sót!
+==========================================================================="),
+        Some((uid, votes)) => format!(
+            "Thời gian quyết định đã hết.
+Người chơi <@{}> đã bị đưa lên máy chém với số phiếu bầu là {}.
+Hy vọng tình thế của làng có thể thay đổi sau quyết định này.
+===========================================================================", uid, votes)
+    }
+}
+
+pub fn new_day(bot_prefix: &str, num_day: i16) -> String {
+    format!(
+        "Một ngày mới bắt đầu, mọi người thức giấc. Báo cáo tình hình ngày {}:
+- Hãy nhập `{}vote <player>` để bỏ phiếu cho người bạn nghi là Sói!",
+        num_day, bot_prefix)
+}
+
+pub fn new_night() -> String {
+    format!("Đêm đã tới. Cảnh vật hóa tĩnh lặng, mọi người an giấc. Liệu đêm nay có xảy ra chuyện gì không?")
+}
+
+pub fn after_death(user_id: i64) -> String {
+    format!("Chào mừng <@{}> đến với nghĩa trang vui vẻ ^^.", user_id)
 }

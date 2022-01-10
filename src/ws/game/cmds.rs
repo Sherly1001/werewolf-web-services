@@ -45,6 +45,15 @@ pub struct Next {
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
+pub struct Vote {
+    pub user_id: i64,
+    pub vote_for: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
 pub struct BotMsg {
     pub channel_id: i64,
     pub msg: String,
@@ -329,4 +338,89 @@ impl Handler<Next> for Game {
         let next = self.info.lock().unwrap().next_flag.clone();
         next.wake();
     }
+}
+
+impl Handler<Vote> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Vote, _: &mut Self::Context) -> Self::Result {
+        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
+
+        let gameplay = *self.info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
+
+        if msg.channel_id != gameplay {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: ttp::must_in_channel(gameplay),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
+        if !self.info.lock().unwrap().is_started {
+            return self.addr.do_send(BotMsg {
+                channel_id: gameplay,
+                msg: ttp::game_is_not_started(),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
+        {
+            let info = self.info.lock().unwrap();
+            if info.is_ended || info.is_stopped {
+                return self.addr.do_send(BotMsg {
+                    channel_id: gameplay,
+                    msg: ttp::stop_game(),
+                    reply_to: Some(msg.msg_id),
+                });
+            }
+        }
+
+        let user_list = self.info.lock().unwrap().get_alives();
+        let vote_user = get_from_vote(&user_list, msg.vote_for);
+        if let Err(err) = vote_user {
+            return self.addr.do_send(BotMsg {
+                channel_id: gameplay,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        let vote_user = vote_user.unwrap();
+
+        self.info.lock().unwrap().vote_kill.insert(msg.user_id, vote_user);
+        self.addr.do_send(BotMsg {
+            channel_id: gameplay,
+            msg: ttp::vote_kill(msg.user_id, vote_user),
+            reply_to: Some(msg.msg_id),
+        });
+    }
+}
+
+fn get_from_vote(
+    (alive, died): &(Vec<i64>, Vec<i64>),
+    vote: Result<i64, u16>,
+) -> Result<i64, String> {
+    if let Err(idx) = vote {
+        let idx = idx as usize;
+        if idx < 1 || idx > alive.len() {
+            return Err(ttp::invalid_index(1, alive.len()));
+        }
+        return Ok(alive[idx - 1]);
+    }
+
+    let vote_for = vote.unwrap();
+
+    if !alive.contains(&vote_for) && !died.contains(&vote_for) {
+        return Err(ttp::player_not_in_game(vote_for));
+    }
+
+    if died.contains(&vote_for) {
+        return Err(ttp::player_died());
+    }
+
+    Ok(vote_for)
 }

@@ -163,6 +163,7 @@ impl ChatServer {
                 self.db_pool.clone(),
                 self.app_state.id_generatator.clone(),
                 self.app_state.bot_id,
+                self.app_state.bot_prefix.clone(),
             ).start();
         self.games.insert(game_id, game.clone());
 
@@ -184,6 +185,7 @@ impl Actor for ChatServer {
             self.db_pool.clone(),
             self.app_state.id_generatator.clone(),
             self.app_state.bot_id,
+            self.app_state.bot_prefix.clone(),
         ) {
             let id = game.id;
             let addr = game.start();
