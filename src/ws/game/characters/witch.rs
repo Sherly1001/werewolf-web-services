@@ -10,6 +10,7 @@ pub struct Witch {
     pub personal_channel: i64,
     pub status: PlayerStatus,
     pub addr: Addr<ChatServer>,
+    pub power: (bool, bool),
 }
 
 impl Witch {
@@ -19,6 +20,7 @@ impl Witch {
             personal_channel: 0,
             status: PlayerStatus::Alive,
             addr,
+            power: (true, true),
         }
     }
 }
@@ -52,7 +54,21 @@ impl Player for Witch {
         });
     }
 
-    fn on_day(&mut self) {}
+    fn get_power(&mut self) -> bool {
+        self.power.0 || self.power.1
+    }
 
-    fn on_night(&mut self) {}
+    fn set_power(&mut self, power: bool) {
+        self.power.0 = power
+    }
+
+    fn set_power2(&mut self, power: bool) {
+        self.power.1 = power
+    }
+
+    fn on_use_power(&mut self) {}
+
+    fn get_mana(&mut self) -> bool {
+        true
+    }
 }

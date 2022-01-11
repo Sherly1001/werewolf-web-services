@@ -19,7 +19,7 @@ pub struct GameLoop {
 #[allow(unused)]
 struct CurrentState {
     is_day: bool,
-    num_day: i16,
+    num_day: u16,
     alive: Vec<i64>,
     died: Vec<i64>,
     gameplay: i64,
@@ -67,13 +67,25 @@ impl GameLoop {
 
         let bot_prefix = self.bot_prefix.clone();
 
+        let (alive, _died) = self.info.lock().unwrap().get_alives();
         for (&uid, player) in self.info.lock().unwrap().players.iter_mut() {
-            player.on_start_game();
+            player.on_start_game(&bot_prefix);
             let role = player.get_role_name();
             if role == roles::WEREWOLF || role == roles::SUPERWOLF {
                 self.addr.do_send(BotMsg {
                     channel_id: werewolf,
                     msg: ttp::new_wolf(uid),
+                    reply_to: None,
+                });
+            } else if role == roles::CUPID {
+                self.addr.do_send(BotMsg {
+                    channel_id: *player.get_channelid(),
+                    msg: ttp::cupid_action(&bot_prefix),
+                    reply_to: None,
+                });
+                self.addr.do_send(BotMsg {
+                    channel_id: *player.get_channelid(),
+                    msg: ttp::player_list(&alive, true),
                     reply_to: None,
                 });
             }
@@ -109,7 +121,7 @@ impl GameLoop {
             }
 
             for (_, player) in self.info.lock().unwrap().players.iter_mut() {
-                player.on_phase(is_day);
+                player.on_phase(num_day, is_day);
             }
 
             self.start_timmer();
@@ -138,7 +150,7 @@ impl GameLoop {
         println!("alive: {:?}", state.alive);
         self.addr.do_send(BotMsg {
             channel_id: state.gameplay,
-            msg: ttp::alive_list(&state.alive),
+            msg: ttp::player_list(&state.alive, true),
             reply_to: None,
         });
 
@@ -183,12 +195,28 @@ impl GameLoop {
         });
         self.addr.do_send(BotMsg {
             channel_id: state.werewolf,
-            msg: ttp::alive_list(&state.alive),
+            msg: ttp::player_list(&state.alive, true),
             reply_to: None,
         });
 
-        for (_uid, player) in self.info.lock().unwrap().players.iter() {
+        for (_uid, player) in self.info.lock().unwrap().players.iter_mut() {
             player.on_action(&self.bot_prefix);
+            if [roles::GUARD, roles::SEER, roles::WITCH]
+                .contains(&player.get_role_name()) {
+                let &mut personal_channel = player.get_channelid();
+                self.addr.do_send(BotMsg {
+                    channel_id: personal_channel,
+                    msg: ttp::player_list(&state.alive, true),
+                    reply_to: None,
+                });
+                if roles::WITCH == player.get_role_name() {
+                    self.addr.do_send(BotMsg {
+                        channel_id: personal_channel,
+                        msg: ttp::player_list(&state.died, false),
+                        reply_to: None,
+                    });
+                }
+            }
         }
     }
 

@@ -10,6 +10,7 @@ pub struct Cupid {
     pub personal_channel: i64,
     pub status: PlayerStatus,
     pub addr: Addr<ChatServer>,
+    pub power: bool,
 }
 
 impl Cupid {
@@ -19,6 +20,7 @@ impl Cupid {
             personal_channel: 0,
             status: PlayerStatus::Alive,
             addr,
+            power: true,
         }
     }
 }
@@ -44,15 +46,26 @@ impl Player for Cupid {
         &mut self.addr
     }
 
-    fn on_action(&self, bot_prefix: &str) {
-        self.addr.do_send(BotMsg {
-            channel_id: self.personal_channel,
-            msg: ttp::cupid_action(bot_prefix),
-            reply_to: None,
-        });
+    fn on_day(&mut self, num_day: u16) {
+        if num_day > 0 && self.power {
+            self.power = false;
+            self.addr.do_send(BotMsg {
+                channel_id: self.personal_channel,
+                msg: ttp::cupid_out_of_power(),
+                reply_to: None,
+            });
+        }
     }
 
-    fn on_day(&mut self) {}
+    fn get_power(&mut self) -> bool {
+        self.power
+    }
 
-    fn on_night(&mut self) {}
+    fn set_power(&mut self, power: bool) {
+        self.power = power;
+    }
+
+    fn get_mana(&mut self) -> bool {
+        true
+    }
 }

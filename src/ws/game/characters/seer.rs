@@ -10,6 +10,7 @@ pub struct Seer {
     pub personal_channel: i64,
     pub status: PlayerStatus,
     pub addr: Addr<ChatServer>,
+    pub mana: bool,
 }
 
 impl Seer {
@@ -19,6 +20,7 @@ impl Seer {
             personal_channel: 0,
             status: PlayerStatus::Alive,
             addr,
+            mana: false,
         }
     }
 }
@@ -52,7 +54,19 @@ impl Player for Seer {
         });
     }
 
-    fn on_day(&mut self) {}
+    fn on_night(&mut self, _num_day: u16) {
+        self.mana = true;
+    }
 
-    fn on_night(&mut self) {}
+    fn get_power(&mut self) -> bool {
+        true
+    }
+
+    fn get_mana(&mut self) -> bool {
+        self.mana
+    }
+
+    fn set_mana(&mut self, mana: bool) {
+        self.mana = mana;
+    }
 }

@@ -81,7 +81,7 @@ pub fn user_next(user_id: i64, numvote: usize, numplayer: usize) -> String {
             user_id, numvote, numplayer)
 }
 
-pub fn new_phase(bot_prefix: &str, num_day: i16, is_day: bool) -> String {
+pub fn new_phase(bot_prefix: &str, num_day: u16, is_day: bool) -> String {
     match is_day {
         true => new_day(bot_prefix, num_day),
         false => new_night(),
@@ -123,7 +123,7 @@ pub fn player_not_in_game(user_id: i64) -> String {
 }
 
 pub fn player_died() -> String {
-    format!("Người ta đã hẹo rồi con vote làm gì.")
+    format!("Người ta đã hẹo rồi, đừng có vote nữa. Vote người nào còn sống thôi :3")
 }
 
 pub fn player_still_alive(user_id: i64) -> String {
@@ -134,8 +134,9 @@ pub fn invalid_index(from: usize, to: usize) -> String {
     format!("Giá trị không hợp lệ, chọn từ {} đến {}.", from, to)
 }
 
-pub fn alive_list(list: &Vec<i64>) -> String {
-    let mut s = String::from("Danh sách những người chơi còn sống:\n");
+pub fn player_list(list: &Vec<i64>, is_alive: bool) -> String {
+    let mut s = format!("Danh sách những người chơi {}:\n",
+        if is_alive { "còn sống" } else { "đã chết" });
     s += list.iter()
         .enumerate()
         .map(|(idx, id)| format!("{}: <@{}>", idx + 1, id))
@@ -158,7 +159,7 @@ Hy vọng tình thế của làng có thể thay đổi sau quyết định này
     }
 }
 
-pub fn new_day(bot_prefix: &str, num_day: i16) -> String {
+pub fn new_day(bot_prefix: &str, num_day: u16) -> String {
     format!(
         "Một ngày mới bắt đầu, mọi người thức giấc. Báo cáo tình hình ngày {}:
 - Hãy nhập `{}vote <player>` để bỏ phiếu cho người bạn nghi là Sói!",
@@ -221,4 +222,32 @@ pub fn list_killed(list: &Vec<i64>) -> String {
     s += "===========================================================================";
 
     s
+}
+
+pub fn must_alive() -> String {
+    format!("Bạn phải còn sống để sủ dụng kỹ năng này!")
+}
+
+pub fn invalid_author() -> String {
+    format!("Hiện tại bạn không được phép dùng kỹ năng này!")
+}
+
+pub fn invalid_daytime() -> String {
+    format!("Hãy sử dụng vào ban ngày!")
+}
+
+pub fn invalid_nighttime() -> String {
+    format!("Hãy đợi tới đêm để sử dụng kỹ năng!")
+}
+
+pub fn out_of_mana() -> String {
+    format!("Bạn chỉ sử dụng kỹ năng được 1 lần mỗi đêm!")
+}
+
+pub fn out_of_power() -> String {
+    format!("Bạn chỉ sử dụng kỹ năng được 1 lần duy nhất!")
+}
+
+pub fn cupid_out_of_power() -> String {
+    format!("Ngày đầu tiên kết thúc, kỹ năng đã hết hiệu lực!")
 }

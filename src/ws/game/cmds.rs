@@ -4,6 +4,7 @@ use actix::{Message, Handler};
 
 use crate::ws::cmd_parser::GameCmd;
 
+use super::characters::roles;
 use super::{Game, game::GameChannel};
 use super::text_templates as ttp;
 
@@ -48,6 +49,61 @@ pub struct Next {
 pub struct Vote {
     pub user_id: i64,
     pub vote_for: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Kill {
+    pub user_id: i64,
+    pub target: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Guard {
+    pub user_id: i64,
+    pub target: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Seer {
+    pub user_id: i64,
+    pub target: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Ship {
+    pub user_id: i64,
+    pub target1: Result<i64, u16>,
+    pub target2: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Reborn {
+    pub user_id: i64,
+    pub target: Result<i64, u16>,
+    pub msg_id: i64,
+    pub channel_id: i64,
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Curse {
+    pub user_id: i64,
+    pub target: Result<i64, u16>,
     pub msg_id: i64,
     pub channel_id: i64,
 }
@@ -285,41 +341,18 @@ impl Handler<Next> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Next, _: &mut Self::Context) -> Self::Result {
-        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
-
         let gameplay = *self.info
             .lock()
             .unwrap()
             .channels
             .get(&GameChannel::GamePlay)
             .unwrap();
-
-        if msg.channel_id != gameplay {
-            return self.addr.do_send(BotMsg {
-                channel_id: msg.channel_id,
-                msg: ttp::must_in_channel(gameplay),
-                reply_to: Some(msg.msg_id),
-            });
-        }
-
-        if !self.info.lock().unwrap().is_started {
-            return self.addr.do_send(BotMsg {
-                channel_id: gameplay,
-                msg: ttp::game_is_not_started(),
-                reply_to: Some(msg.msg_id),
-            });
-        }
-
-        {
-            let info = self.info.lock().unwrap();
-            if info.is_ended || info.is_stopped {
-                return self.addr.do_send(BotMsg {
-                    channel_id: gameplay,
-                    msg: ttp::stop_game(),
-                    reply_to: Some(msg.msg_id),
-                });
-            }
-        }
+        if !self.asset_cmd_in(
+            Some(gameplay),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
 
         self.info.lock().unwrap().vote_nexts.insert(msg.user_id);
 
@@ -344,41 +377,14 @@ impl Handler<Vote> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Vote, _: &mut Self::Context) -> Self::Result {
-        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
-
-        let gameplay = *self.info
-            .lock()
-            .unwrap()
-            .channels
-            .get(&GameChannel::GamePlay)
-            .unwrap();
-
-        if msg.channel_id != gameplay {
-            return self.addr.do_send(BotMsg {
-                channel_id: msg.channel_id,
-                msg: ttp::must_in_channel(gameplay),
-                reply_to: Some(msg.msg_id),
-            });
-        }
-
-        if !self.info.lock().unwrap().is_started {
-            return self.addr.do_send(BotMsg {
-                channel_id: gameplay,
-                msg: ttp::game_is_not_started(),
-                reply_to: Some(msg.msg_id),
-            });
-        }
-
-        {
-            let info = self.info.lock().unwrap();
-            if info.is_ended || info.is_stopped {
-                return self.addr.do_send(BotMsg {
-                    channel_id: gameplay,
-                    msg: ttp::stop_game(),
-                    reply_to: Some(msg.msg_id),
-                });
-            }
-        }
+        let gameplay = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::GamePlay).unwrap();
+        if !self.asset_cmd_in(
+            Some(gameplay),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let vote_user = get_from_target(&user_list, msg.vote_for, Some(true));
@@ -400,6 +406,113 @@ impl Handler<Vote> for Game {
     }
 }
 
+impl Handler<Kill> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Kill, _ctx: &mut Self::Context) -> Self::Result {
+        let werewolf = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::WereWolf).unwrap();
+        if !asset_cmd(
+            self,
+            &[roles::WEREWOLF, roles::SUPERWOLF],
+            Some(werewolf),
+            Some(false),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
+    }
+}
+
+impl Handler<Guard> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Guard, _ctx: &mut Self::Context) -> Self::Result {
+        if !asset_cmd(
+            self,
+            &[roles::GUARD],
+            None,
+            Some(false),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
+    }
+}
+
+impl Handler<Seer> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Seer, _ctx: &mut Self::Context) -> Self::Result {
+        if !asset_cmd(
+            self,
+            &[roles::SEER],
+            None,
+            Some(false),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
+    }
+}
+
+impl Handler<Ship> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Ship, _ctx: &mut Self::Context) -> Self::Result {
+        if !asset_cmd(
+            self,
+            &[roles::CUPID],
+            None,
+            None,
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
+    }
+}
+
+impl Handler<Reborn> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Reborn, _ctx: &mut Self::Context) -> Self::Result {
+        if !asset_cmd(
+            self,
+            &[roles::WITCH],
+            None,
+            Some(false),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
+
+        self.info.lock().unwrap()
+            .players.get_mut(&msg.user_id).unwrap()
+            .set_power(false);
+    }
+}
+
+impl Handler<Curse> for Game {
+    type Result = ();
+
+    fn handle(&mut self, msg: Curse, _ctx: &mut Self::Context) -> Self::Result {
+        if !asset_cmd(
+            self,
+            &[roles::WITCH],
+            None,
+            Some(false),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) { return }
+
+        self.info.lock().unwrap()
+            .players.get_mut(&msg.user_id).unwrap()
+            .set_power2(false);
+    }
+}
+
+// must Some(true) if alive Some(false) if died
 fn get_from_target(
     (alive, died): &(Vec<i64>, Vec<i64>),
     target: Result<i64, u16>,
@@ -428,4 +541,81 @@ fn get_from_target(
     }
 
     Ok(target)
+}
+
+fn asset_cmd(
+    game: &Game,
+    roles: &[&'static str],
+    channel_id: Option<i64>,
+    phase: Option<bool>,
+    user_id: i64,
+    msg_id: i64,
+    msg_channel_id: i64,
+) -> bool {
+    if !game.asset_cmd_in(
+        channel_id,
+        user_id,
+        msg_id,
+        msg_channel_id,
+    ) { return false }
+
+    if roles.len() > 0 && roles.iter()
+        .map(|r| game.assert_role(r, user_id)).all(|v| !v) {
+        game.addr.do_send(BotMsg {
+            channel_id: msg_channel_id,
+            msg: ttp::invalid_author(),
+            reply_to: Some(msg_id),
+        });
+        return false;
+    }
+
+    let is_day = game.info.lock().unwrap().is_day;
+    if let Some(phase) = phase {
+        if is_day != phase {
+            game.addr.do_send(BotMsg {
+                channel_id: msg_channel_id,
+                msg: if phase {
+                    ttp::invalid_daytime()
+                } else {
+                    ttp::invalid_nighttime()
+                },
+                reply_to: Some(msg_id),
+            });
+            return false;
+        }
+    }
+
+    let mut info_lock = game.info.lock().unwrap();
+    let player = info_lock.players.get_mut(&user_id).unwrap();
+
+    if !player.is_alive() {
+        game.addr.do_send(BotMsg {
+            channel_id: msg_channel_id,
+            msg: ttp::must_alive(),
+            reply_to: Some(msg_id),
+        });
+        return false;
+    }
+
+    if !player.get_power() {
+        game.addr.do_send(BotMsg {
+            channel_id: msg_channel_id,
+            msg: ttp::out_of_power(),
+            reply_to: Some(msg_id),
+        });
+        return false;
+    }
+    player.on_use_power();
+
+    if !player.get_mana() {
+        game.addr.do_send(BotMsg {
+            channel_id: msg_channel_id,
+            msg: ttp::out_of_mana(),
+            reply_to: Some(msg_id),
+        });
+        return false;
+    }
+    player.on_use_mana();
+
+    true
 }

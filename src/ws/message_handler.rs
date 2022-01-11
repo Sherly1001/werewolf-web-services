@@ -183,20 +183,117 @@ fn game_commands(
                 ));
             }
 
-            let vote_for;
-            if let Ok(id) = cmds[1].parse() {
-                vote_for = Err(id);
-            } else {
-                let len = cmds[1].len();
-                vote_for = Ok(cmds[1][2..len-1].parse::<i64>()
-                    .map_err(|err| err.to_string())?);
-            }
+            let vote_for = get_target(&cmds[1])?;
 
             send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Vote {
                 user_id,
                 msg_id,
                 channel_id,
                 vote_for,
+            })?;
+        }
+        "kill" => {
+            if cmds.len() != 2 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "kill <player>",
+                ));
+            }
+
+            let target = get_target(&cmds[1])?;
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Kill {
+                user_id,
+                msg_id,
+                channel_id,
+                target,
+            })?;
+        }
+        "guard" => {
+            if cmds.len() != 2 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "guard <player>",
+                ));
+            }
+
+            let target = get_target(&cmds[1])?;
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Guard {
+                user_id,
+                msg_id,
+                channel_id,
+                target,
+            })?;
+        }
+        "seer" => {
+            if cmds.len() != 2 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "seer <player>",
+                ));
+            }
+
+            let target = get_target(&cmds[1])?;
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Seer {
+                user_id,
+                msg_id,
+                channel_id,
+                target,
+            })?;
+        }
+        "ship" => {
+            if cmds.len() != 3 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "ship <player 1> <player 2>",
+                ));
+            }
+
+            let target1 = get_target(&cmds[1])?;
+            let target2 = get_target(&cmds[2])?;
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Ship {
+                user_id,
+                msg_id,
+                channel_id,
+                target1,
+                target2
+            })?;
+        }
+        "reborn" => {
+            if cmds.len() != 2 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "reborn <player>",
+                ));
+            }
+
+            let target = get_target(&cmds[1])?;
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Reborn {
+                user_id,
+                msg_id,
+                channel_id,
+                target,
+            })?;
+        }
+        "curse" => {
+            if cmds.len() != 2 {
+                return Err(ttp::wrong_cmd_format(
+                    &srv.app_state.bot_prefix,
+                    "curse <player>",
+                ));
+            }
+
+            let target = get_target(&cmds[1])?;
+
+            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Curse {
+                user_id,
+                msg_id,
+                channel_id,
+                target,
             })?;
         }
         _ => {}
@@ -240,4 +337,14 @@ where
     }
 
     Ok(())
+}
+
+fn get_target(arg: &str) -> Result<Result<i64, u16>, String> {
+    if let Ok(id) = arg.parse() {
+        Ok(Err(id))
+    } else {
+        let len = arg.len();
+        Ok(Ok(arg[2..len-1].parse::<i64>()
+            .map_err(|err| err.to_string())?))
+    }
 }
