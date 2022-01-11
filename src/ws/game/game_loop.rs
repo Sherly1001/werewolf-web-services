@@ -192,7 +192,26 @@ impl GameLoop {
         }
     }
 
-    fn do_end_night(&self, _state: &CurrentState) {}
+    fn do_end_night(&self, state: &CurrentState) {
+        let mut info_lock = self.info.lock().unwrap();
+        if let Some((uid, _)) = get_top_vote(&info_lock.wolf_kill) {
+            info_lock.night_pending_kill.insert(uid);
+        }
+
+        let mut killed = vec![];
+        for user_id in info_lock.night_pending_kill.clone() {
+            let player = info_lock.players.get_mut(&user_id).unwrap();
+            if player.get_killed() {
+                killed.push(user_id);
+            }
+        }
+
+        self.addr.do_send(BotMsg {
+            channel_id: state.gameplay,
+            msg: ttp::list_killed(&killed),
+            reply_to: None,
+        });
+    }
 
     fn start_timmer(&self) {
         let addr = self.addr.clone();

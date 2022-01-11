@@ -132,11 +132,12 @@ pub fn invalid_index(from: usize, to: usize) -> String {
 
 pub fn alive_list(list: &Vec<i64>) -> String {
     let mut s = String::from("Danh sách những người chơi còn sống:\n");
-
-    for (idx, id) in list.iter().enumerate() {
-        s += format!("{}: <@{}>\n", idx + 1, id).as_str();
-    }
-
+    s += list.iter()
+        .enumerate()
+        .map(|(idx, id)| format!("{}: <@{}>", idx + 1, id))
+        .collect::<Vec<String>>()
+        .join("\n")
+        .as_str();
     s
 }
 
@@ -196,4 +197,24 @@ pub fn cupid_action(bot_prefix: &str) -> String {
 pub fn before_wolf_action(bot_prefix: &str) -> String {
     format!(
         "Đêm nay, Sói muốn lấy mạng ai? Hãy nhập `{}kill <player>` để lặng lẽ xử lý nạn nhân. Ví dụ: `{}kill 2`", bot_prefix, bot_prefix)
+}
+
+pub fn list_killed(list: &Vec<i64>) -> String {
+    let mut s = String::new();
+
+    if list.is_empty() {
+        s += "Đêm qua, mọi người đều bình an.\n";
+    } else {
+        s += "Đêm qua, ";
+        s += list.iter()
+            .map(|id| format!("<@{}>", id))
+            .collect::<Vec<String>>()
+            .join(", ")
+            .as_str();
+        s += "đã bị mất tích một cách bí ẩn.\n";
+    }
+
+    s += "===========================================================================";
+
+    s
 }
