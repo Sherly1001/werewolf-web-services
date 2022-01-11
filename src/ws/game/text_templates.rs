@@ -77,7 +77,7 @@ pub fn user_next(user_id: i64, numvote: usize, numplayer: usize) -> String {
             user_id, numvote, numplayer)
 }
 
-pub fn new_pharse(bot_prefix: &str, num_day: i16, is_day: bool) -> String {
+pub fn new_phase(bot_prefix: &str, num_day: i16, is_day: bool) -> String {
     match is_day {
         true => new_day(bot_prefix, num_day),
         false => new_night(),
@@ -162,4 +162,34 @@ pub fn new_night() -> String {
 
 pub fn after_death(user_id: i64) -> String {
     format!("Chào mừng <@{}> đến với nghĩa trang vui vẻ ^^.", user_id)
+}
+
+pub fn seer_action(bot_prefix: &str) -> String {
+    format!(
+        "Tiên tri muốn thấy gì, từ ai?
+- Hãy làm phép bằng cách nhập `{}seer <player>` để xem người chơi đó là ai.", bot_prefix)
+}
+
+pub fn guard_action(bot_prefix: &str) -> String {
+    format!(
+        "Bảo vệ muốn ai sống qua đêm nay, hãy nhập `{}guard <player>` để người đó qua đêm an bình. Ví dụ: `{}guard 2`
+- Bạn chỉ sử dụng kỹ năng được 1 lần mỗi đêm. Hãy cẩn trọng!", bot_prefix, bot_prefix)
+}
+
+pub fn witch_action(bot_prefix: &str) -> String {
+    format!(
+        "Bạn có thể cứu 1 người và giết 1 người. Bạn chỉ được dùng mỗi kỹ năng 1 lần.
+- Nhập `{}reborn <player>` để cứu người.
+- Nhập `{}curse <player>` để nguyền rủa 1 người.", bot_prefix, bot_prefix)
+}
+
+pub fn cupid_action(bot_prefix: &str) -> String {
+    format!(
+        "Cupid muốn cho cặp đôi nào được đồng sinh cộng tử.
+- Hãy làm phép bằng cách nhập `{}ship <player 1> <player 2>` để ghép đôi.", bot_prefix)
+}
+
+pub fn before_wolf_action(bot_prefix: &str) -> String {
+    format!(
+        "Đêm nay, Sói muốn lấy mạng ai? Hãy nhập `{}kill <player>` để lặng lẽ xử lý nạn nhân. Ví dụ: `{}kill 2`", bot_prefix, bot_prefix)
 }

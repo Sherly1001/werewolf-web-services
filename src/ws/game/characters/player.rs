@@ -16,8 +16,10 @@ pub trait Player {
     fn get_channelid(&mut self) -> &mut i64;
     fn get_addr(&mut self) -> &mut Addr<ChatServer>;
 
-    fn on_day(&mut self);
-    fn on_night(&mut self);
+    #[allow(unused_variables)]
+    fn on_action(&self, bot_prefix: &str) {}
+    fn on_day(&mut self) {}
+    fn on_night(&mut self) {}
 
     fn is_alive(&self) -> bool {
         unsafe {

@@ -89,7 +89,7 @@ impl GameLoop {
 
             self.addr.do_send(BotMsg {
                 channel_id: gameplay,
-                msg: ttp::new_pharse(&bot_prefix, num_day, is_day),
+                msg: ttp::new_phase(&bot_prefix, num_day, is_day),
                 reply_to: None,
             });
 
@@ -166,7 +166,22 @@ impl GameLoop {
         });
     }
 
-    fn do_start_night(&self, _state: &CurrentState) {}
+    fn do_start_night(&self, state: &CurrentState) {
+        self.addr.do_send(BotMsg {
+            channel_id: state.werewolf,
+            msg: ttp::before_wolf_action(&self.bot_prefix),
+            reply_to: None,
+        });
+        self.addr.do_send(BotMsg {
+            channel_id: state.werewolf,
+            msg: ttp::alive_list(&state.alive),
+            reply_to: None,
+        });
+
+        for (_uid, player) in self.info.lock().unwrap().players.iter() {
+            player.on_action(&self.bot_prefix);
+        }
+    }
 
     fn do_end_night(&self, _state: &CurrentState) {}
 

@@ -1,6 +1,6 @@
 use actix::Addr;
 
-use crate::ws::ChatServer;
+use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
 
 use super::{player::{PlayerStatus, Player}, roles};
 
@@ -42,6 +42,14 @@ impl Player for Guard {
 
     fn get_addr(&mut self) -> &mut Addr<ChatServer> {
         &mut self.addr
+    }
+
+    fn on_action(&self, bot_prefix: &str) {
+        self.addr.do_send(BotMsg {
+            channel_id: self.personal_channel,
+            msg: ttp::guard_action(bot_prefix),
+            reply_to: None,
+        });
     }
 
     fn on_day(&mut self) {}
