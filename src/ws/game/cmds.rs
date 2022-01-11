@@ -381,7 +381,7 @@ impl Handler<Vote> for Game {
         }
 
         let user_list = self.info.lock().unwrap().get_alives();
-        let vote_user = get_from_vote(&user_list, msg.vote_for);
+        let vote_user = get_from_target(&user_list, msg.vote_for, Some(true));
         if let Err(err) = vote_user {
             return self.addr.do_send(BotMsg {
                 channel_id: gameplay,
@@ -400,11 +400,12 @@ impl Handler<Vote> for Game {
     }
 }
 
-fn get_from_vote(
+fn get_from_target(
     (alive, died): &(Vec<i64>, Vec<i64>),
-    vote: Result<i64, u16>,
+    target: Result<i64, u16>,
+    must: Option<bool>,
 ) -> Result<i64, String> {
-    if let Err(idx) = vote {
+    if let Err(idx) = target {
         let idx = idx as usize;
         if idx < 1 || idx > alive.len() {
             return Err(ttp::invalid_index(1, alive.len()));
@@ -412,15 +413,19 @@ fn get_from_vote(
         return Ok(alive[idx - 1]);
     }
 
-    let vote_for = vote.unwrap();
+    let target = target.unwrap();
 
-    if !alive.contains(&vote_for) && !died.contains(&vote_for) {
-        return Err(ttp::player_not_in_game(vote_for));
+    if !alive.contains(&target) && !died.contains(&target) {
+        return Err(ttp::player_not_in_game(target));
     }
 
-    if died.contains(&vote_for) {
+    if Some(true) == must && died.contains(&target) {
         return Err(ttp::player_died());
     }
 
-    Ok(vote_for)
+    if Some(false) == must && alive.contains(&target) {
+        return Err(ttp::player_still_alive(target));
+    }
+
+    Ok(target)
 }

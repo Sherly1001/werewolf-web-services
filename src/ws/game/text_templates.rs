@@ -126,6 +126,10 @@ pub fn player_died() -> String {
     format!("Người ta đã hẹo rồi con vote làm gì.")
 }
 
+pub fn player_still_alive(user_id: i64) -> String {
+    format!("<@{}> còn sống mà bạn!", user_id)
+}
+
 pub fn invalid_index(from: usize, to: usize) -> String {
     format!("Giá trị không hợp lệ, chọn từ {} đến {}.", from, to)
 }
