@@ -40,6 +40,10 @@ pub fn start_game() -> String {
     format!("2/3 người chơi đã sẵn sàng, trò chơi chuẩn bị bắt đầu.")
 }
 
+pub fn new_wolf(user_id: i64) -> String {
+    format!("Chào sói <@{}>.", user_id)
+}
+
 pub fn on_start_game(role: &'static str) -> String {
     format!("Chào mừng, vai của bạn là {}.", role)
 }

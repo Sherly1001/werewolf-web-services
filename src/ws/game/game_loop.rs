@@ -5,6 +5,7 @@ use actix::Arbiter;
 
 use crate::db;
 
+use super::characters::roles;
 use super::cmds::{BotMsg, UpdatePers};
 use super::game::GameChannel;
 use super::{text_templates as ttp, Game};
@@ -43,10 +44,6 @@ impl GameLoop {
     }
 
     pub async fn run(&self) {
-        for (_, player) in self.info.lock().unwrap().players.iter_mut() {
-            player.on_start_game();
-        }
-
         let next = self.info.lock().unwrap().next_flag.clone();
 
         let gameplay = *self.info
@@ -69,6 +66,18 @@ impl GameLoop {
             .unwrap();
 
         let bot_prefix = self.bot_prefix.clone();
+
+        for (&uid, player) in self.info.lock().unwrap().players.iter_mut() {
+            player.on_start_game();
+            let role = player.get_role_name();
+            if role == roles::WEREWOLF || role == roles::SUPERWOLF {
+                self.addr.do_send(BotMsg {
+                    channel_id: werewolf,
+                    msg: ttp::new_wolf(uid),
+                    reply_to: None,
+                });
+            }
+        }
 
         while !self.info.lock().unwrap().is_ended {
             let is_day = self.info.lock().unwrap().is_day;
