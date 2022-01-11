@@ -2,6 +2,8 @@ use actix::Addr;
 
 use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
 
+use super::roles;
+
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum PlayerStatus {
     Alive,
@@ -20,6 +22,15 @@ pub trait Player {
     fn on_action(&self, bot_prefix: &str) {}
     fn on_day(&mut self) {}
     fn on_night(&mut self) {}
+
+    // Some(true) if werewolf, Some(false) if fox, None if otherwise
+    fn on_seer(&self) -> Option<bool> {
+        match self.get_role_name() {
+            roles::WEREWOLF => Some(true),
+            roles::FOX => Some(false),
+            _ => None,
+        }
+    }
 
     fn is_alive(&self) -> bool {
         unsafe {
