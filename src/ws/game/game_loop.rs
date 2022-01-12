@@ -153,6 +153,10 @@ impl GameLoop {
         if let Some((uid, _)) = top_vote {
             if let Some(player) = self.info.lock().unwrap().players.get_mut(&uid) {
                 if player.get_killed() {
+                    if player.get_role_name() == roles::WEREWOLF
+                        || player.get_role_name() == roles::SUPERWOLF {
+                        self.set_pers(uid, state.werewolf, false, false);
+                    }
                     self.set_pers(uid, state.gameplay, true, false);
                     self.set_pers(uid, state.cemetery, true, true);
                     self.addr.do_send(BotMsg {
