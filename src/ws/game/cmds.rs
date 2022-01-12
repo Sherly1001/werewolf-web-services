@@ -421,6 +421,24 @@ impl Handler<Kill> for Game {
             msg.msg_id,
             msg.channel_id,
         ) { return }
+
+        let user_list = self.info.lock().unwrap().get_alives();
+        let target = get_from_target(&user_list, msg.target, Some(true));
+        if let Err(err) = target {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        let target = target.unwrap();
+
+        self.info.lock().unwrap().wolf_kill.insert(msg.user_id, target);
+        self.addr.do_send(BotMsg {
+            channel_id: werewolf,
+            msg: ttp::wolf_kill(msg.user_id, target),
+            reply_to: Some(msg.msg_id),
+        });
     }
 }
 

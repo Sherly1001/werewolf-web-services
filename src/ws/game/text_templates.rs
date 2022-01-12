@@ -216,6 +216,7 @@ pub fn list_killed(list: &Vec<i64>) -> String {
             .collect::<Vec<String>>()
             .join(", ")
             .as_str();
+        if list.len() == 1 { s += " " }
         s += "đã bị mất tích một cách bí ẩn.\n";
     }
 
@@ -250,4 +251,8 @@ pub fn out_of_power() -> String {
 
 pub fn cupid_out_of_power() -> String {
     format!("Ngày đầu tiên kết thúc, kỹ năng đã hết hiệu lực!")
+}
+
+pub fn wolf_kill(wolf_id: i64, target_id: i64) -> String {
+    format!("Sói <@{}> muốn xử lý <@{}> trong đêm nay", wolf_id, target_id)
 }
