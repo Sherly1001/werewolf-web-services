@@ -187,7 +187,14 @@ impl GameLoop {
             reply_to: None,
         });
 
-        for (_uid, player) in self.info.lock().unwrap().players.iter_mut() {
+        let mut info_lock = self.info.lock().unwrap();
+        if let Some((_, day)) = info_lock.guard_yesterday_target {
+            if day != info_lock.num_day - 1 {
+                info_lock.guard_yesterday_target = None;
+            }
+        }
+
+        for (_uid, player) in info_lock.players.iter_mut() {
             player.on_action(&self.bot_prefix);
             if [roles::GUARD, roles::SEER, roles::WITCH]
                 .contains(&player.get_role_name()) {

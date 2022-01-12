@@ -254,5 +254,13 @@ pub fn cupid_out_of_power() -> String {
 }
 
 pub fn wolf_kill(wolf_id: i64, target_id: i64) -> String {
-    format!("Sói <@{}> muốn xử lý <@{}> trong đêm nay", wolf_id, target_id)
+    format!("Sói <@{}> muốn xử lý <@{}> trong đêm nay.", wolf_id, target_id)
+}
+
+pub fn guard_success(target_id: i64) -> String {
+    format!("Đã bảo vệ thành công <@{}>.", target_id)
+}
+
+pub fn guard_yesterday_target() -> String {
+    format!("Hôm qua bạn đã bảo vệ người này. Hãy đổi mục tiêu khác!")
 }

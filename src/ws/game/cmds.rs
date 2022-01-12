@@ -433,6 +433,10 @@ impl Handler<Kill> for Game {
         }
         let target = target.unwrap();
 
+        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
+
         self.info.lock().unwrap().wolf_kill.insert(msg.user_id, target);
         self.addr.do_send(BotMsg {
             channel_id: werewolf,
@@ -455,6 +459,44 @@ impl Handler<Guard> for Game {
             msg.msg_id,
             msg.channel_id,
         ) { return }
+
+        let user_list = self.info.lock().unwrap().get_alives();
+        let target = get_from_target(&user_list, msg.target, Some(true));
+        if let Err(err) = target {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        let target = target.unwrap();
+
+        let personal_channel = *self.info.lock().unwrap()
+            .players.get_mut(&msg.user_id).unwrap()
+            .get_channelid();
+
+        if let Some((old, _)) = self.info.lock().unwrap().guard_yesterday_target {
+            if old == target {
+                return self.addr.do_send(BotMsg {
+                    channel_id: personal_channel,
+                    msg: ttp::guard_yesterday_target(),
+                    reply_to: Some(msg.msg_id),
+                });
+            }
+        }
+
+        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
+
+        let mut info_lock = self.info.lock().unwrap();
+        info_lock.players.get_mut(&target).unwrap().get_protected();
+        info_lock.guard_yesterday_target = Some((target, info_lock.num_day));
+        self.addr.do_send(BotMsg {
+            channel_id: personal_channel,
+            msg: ttp::guard_success(target),
+            reply_to: Some(msg.msg_id),
+        });
     }
 }
 
@@ -471,6 +513,10 @@ impl Handler<Seer> for Game {
             msg.msg_id,
             msg.channel_id,
         ) { return }
+
+        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
     }
 }
 
@@ -487,6 +533,10 @@ impl Handler<Ship> for Game {
             msg.msg_id,
             msg.channel_id,
         ) { return }
+
+        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
     }
 }
 
@@ -503,6 +553,10 @@ impl Handler<Reborn> for Game {
             msg.msg_id,
             msg.channel_id,
         ) { return }
+
+        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
 
         self.info.lock().unwrap()
             .players.get_mut(&msg.user_id).unwrap()
@@ -523,6 +577,10 @@ impl Handler<Curse> for Game {
             msg.msg_id,
             msg.channel_id,
         ) { return }
+
+        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
 
         self.info.lock().unwrap()
             .players.get_mut(&msg.user_id).unwrap()
@@ -614,6 +672,18 @@ fn asset_cmd(
         });
         return false;
     }
+
+    true
+}
+
+fn assert_use_skill(
+    game: &Game,
+    user_id: i64,
+    msg_id: i64,
+    msg_channel_id: i64,
+) -> bool {
+    let mut info_lock = game.info.lock().unwrap();
+    let player = info_lock.players.get_mut(&user_id).unwrap();
 
     if !player.get_power() {
         game.addr.do_send(BotMsg {
