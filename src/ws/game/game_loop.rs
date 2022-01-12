@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 use actix::Arbiter;
@@ -148,23 +148,23 @@ impl GameLoop {
     }
 
     fn do_end_day(&self, state: &CurrentState) {
-        let top_vote = get_top_vote(&self.info.lock().unwrap().vote_kill);
+        let top_vote = get_top_vote(&mut self.info.lock().unwrap().vote_kill);
 
         if let Some((uid, _)) = top_vote {
-            if let Some(player) = self.info.lock().unwrap().players.get_mut(&uid) {
-                if player.get_killed() {
-                    if player.get_role_name() == roles::WEREWOLF
-                        || player.get_role_name() == roles::SUPERWOLF {
-                        self.set_pers(uid, state.werewolf, false, false);
-                    }
-                    self.set_pers(uid, state.gameplay, true, false);
-                    self.set_pers(uid, state.cemetery, true, true);
-                    self.addr.do_send(BotMsg {
-                        channel_id: state.cemetery,
-                        msg: ttp::after_death(uid),
-                        reply_to: None,
-                    });
+            let mut info_lock = self.info.lock().unwrap();
+            let player = info_lock.players.get_mut(&uid).unwrap();
+            if player.get_killed() {
+                if player.get_role_name() == roles::WEREWOLF
+                    || player.get_role_name() == roles::SUPERWOLF {
+                    self.set_pers(uid, state.werewolf, false, false);
                 }
+                self.set_pers(uid, state.gameplay, true, false);
+                self.set_pers(uid, state.cemetery, true, true);
+                self.addr.do_send(BotMsg {
+                    channel_id: state.cemetery,
+                    msg: ttp::after_death(uid),
+                    reply_to: None,
+                });
             }
         }
 
@@ -221,7 +221,7 @@ impl GameLoop {
 
     fn do_end_night(&self, state: &CurrentState) {
         let mut info_lock = self.info.lock().unwrap();
-        if let Some((uid, _)) = get_top_vote(&info_lock.wolf_kill) {
+        if let Some((uid, _)) = get_top_vote(&mut info_lock.wolf_kill) {
             info_lock.night_pending_kill.insert(uid);
         }
 
@@ -232,12 +232,28 @@ impl GameLoop {
                 killed.push(user_id);
             }
         }
+        info_lock.night_pending_kill = HashSet::new();
 
         self.addr.do_send(BotMsg {
             channel_id: state.gameplay,
             msg: ttp::list_killed(&killed),
             reply_to: None,
         });
+
+        for uid in killed {
+            let player = info_lock.players.get_mut(&uid).unwrap();
+            let is_wolf = player.get_role_name() == roles::WEREWOLF
+                || player.get_role_name() == roles::SUPERWOLF;
+
+            self.set_pers(uid, state.gameplay, true, false);
+            self.set_pers(uid, state.cemetery, true, true);
+            if is_wolf { self.set_pers(uid, state.werewolf, false, false); }
+            self.addr.do_send(BotMsg {
+                channel_id: state.cemetery,
+                msg: ttp::after_death(uid),
+                reply_to: None,
+            });
+        }
     }
 
     fn start_timmer(&self) {
@@ -299,12 +315,13 @@ impl GameLoop {
     }
 }
 
-fn get_top_vote(vote_list: &HashMap<i64, i64>) -> Option<(i64, u16)> {
+fn get_top_vote(vote_list: &mut HashMap<i64, i64>) -> Option<(i64, u16)> {
     let mut h = HashMap::new();
 
     for (_, &uid) in vote_list.iter() {
         *h.entry(uid).or_insert(0) += 1;
     }
+    *vote_list = HashMap::new();
 
     let mut vec = h.into_iter().collect::<Vec<(i64, u16)>>();
     vec.sort_by(|a, b| b.1.cmp(&a.1));
