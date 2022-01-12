@@ -664,15 +664,21 @@ fn get_from_target(
     target: Result<i64, u16>,
     must: Option<bool>,
 ) -> Result<i64, String> {
-    if let Err(idx) = target {
-        let idx = idx as usize;
-        if idx < 1 || idx > alive.len() {
-            return Err(ttp::invalid_index(1, alive.len()));
+    let target = match target {
+        Ok(id) => Ok(id),
+        Err(idx) => {
+            let idx = idx as usize;
+            let list = match must {
+                Some(false) => &died,
+                _ => &alive,
+            };
+            if idx < 1 || idx > list.len() {
+                Err(ttp::invalid_index(1, list.len()))
+            } else {
+                Ok(list[idx - 1])
+            }
         }
-        return Ok(alive[idx - 1]);
-    }
-
-    let target = target.unwrap();
+    }?;
 
     if !alive.contains(&target) && !died.contains(&target) {
         return Err(ttp::player_not_in_game(target));
