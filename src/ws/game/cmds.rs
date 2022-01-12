@@ -27,6 +27,7 @@ pub struct Leave {
 pub struct Start {
     pub user_id: i64,
     pub msg_id: i64,
+    pub channel_id: i64,
 }
 
 #[derive(Message, Debug)]
@@ -34,6 +35,7 @@ pub struct Start {
 pub struct Stop {
     pub user_id: i64,
     pub msg_id: i64,
+    pub channel_id: i64,
 }
 
 #[derive(Message, Debug)]
@@ -237,9 +239,21 @@ impl Handler<Start> for Game {
     fn handle(&mut self, msg: Start, _: &mut Self::Context) -> Self::Result {
         if !self.must_in_game(msg.user_id, msg.msg_id) { return }
 
+        let gameplay = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::GamePlay).unwrap();
+        let channel_id = msg.channel_id;
+
+        if channel_id != 1 && channel_id != gameplay {
+            return self.addr.do_send(BotMsg {
+                channel_id,
+                msg: ttp::must_in_channel(1),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
         if self.info.lock().unwrap().is_started {
             return self.addr.do_send(BotMsg {
-                channel_id: 1,
+                channel_id,
                 msg: ttp::game_is_started(),
                 reply_to: Some(msg.msg_id),
             })
@@ -248,7 +262,7 @@ impl Handler<Start> for Game {
         let num_users = self.info.lock().unwrap().users.len();
         if num_users < 4 {
             return self.addr.do_send(BotMsg {
-                channel_id: 1,
+                channel_id,
                 msg: ttp::not_enough_player(num_users),
                 reply_to: Some(msg.msg_id),
             });
@@ -260,7 +274,7 @@ impl Handler<Start> for Game {
         let numplayer = self.info.lock().unwrap().users.len();
         if numvote * 3 < numplayer * 2 {
             return self.addr.do_send(BotMsg {
-                channel_id: 1,
+                channel_id,
                 msg: ttp::user_start(msg.user_id, numvote, numplayer),
                 reply_to: Some(msg.msg_id),
             });
@@ -268,16 +282,12 @@ impl Handler<Start> for Game {
 
         match self.start() {
             Err(err) => return self.addr.do_send(BotMsg {
-                channel_id: 1,
+                channel_id,
                 msg: err,
                 reply_to: Some(msg.msg_id),
             }),
             Ok(roles) => self.addr.do_send(BotMsg {
-                channel_id: *self.info
-                    .lock()
-                    .unwrap()
-                    .channels.get(&GameChannel::GamePlay)
-                    .unwrap(),
+                channel_id: gameplay,
                 msg: ttp::roles_list(&roles),
                 reply_to: None,
             })
@@ -302,6 +312,18 @@ impl Handler<Stop> for Game {
     fn handle(&mut self, msg: Stop, _: &mut Self::Context) -> Self::Result {
         if !self.must_in_game(msg.user_id, msg.msg_id) { return }
 
+        let gameplay = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::GamePlay).unwrap();
+        let channel_id = msg.channel_id;
+
+        if channel_id != 1 && channel_id != gameplay {
+            return self.addr.do_send(BotMsg {
+                channel_id,
+                msg: ttp::must_in_channel(1),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+
         if !self.info.lock().unwrap().is_ended {
             self.info.lock().unwrap().vote_stops.insert(msg.user_id);
 
@@ -309,7 +331,7 @@ impl Handler<Stop> for Game {
             let numplayer = self.info.lock().unwrap().users.len();
             if numvote * 3 < numplayer * 2 {
                 return self.addr.do_send(BotMsg {
-                    channel_id: 1,
+                    channel_id,
                     msg: ttp::user_stop(msg.user_id, numvote, numplayer),
                     reply_to: Some(msg.msg_id),
                 });
@@ -318,7 +340,7 @@ impl Handler<Stop> for Game {
 
         if let Err(err) = self.stop() {
             return self.addr.do_send(BotMsg {
-                channel_id: 1,
+                channel_id,
                 msg: err,
                 reply_to: Some(msg.msg_id),
             });
@@ -326,7 +348,7 @@ impl Handler<Stop> for Game {
 
         self.addr.do_send(StopGame(self.id));
         self.addr.do_send(BotMsg {
-            channel_id: 1,
+            channel_id,
             msg: ttp::stop_game(),
             reply_to: Some(msg.msg_id),
         });
@@ -344,12 +366,8 @@ impl Handler<Next> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Next, _: &mut Self::Context) -> Self::Result {
-        let gameplay = *self.info
-            .lock()
-            .unwrap()
-            .channels
-            .get(&GameChannel::GamePlay)
-            .unwrap();
+        let gameplay = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::GamePlay).unwrap();
         if !self.asset_cmd_in(
             Some(gameplay),
             msg.user_id,

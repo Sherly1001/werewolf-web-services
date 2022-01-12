@@ -155,17 +155,17 @@ fn game_commands(
             })?;
         }
         "start" => {
-            must_in_channel(1, channel_id)?;
             send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Start {
                 user_id,
                 msg_id,
+                channel_id,
             })?;
         }
         "stop" => {
-            must_in_channel(1, channel_id)?;
             send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Stop {
                 user_id,
                 msg_id,
+                channel_id,
             })?;
         }
         "next" => {
