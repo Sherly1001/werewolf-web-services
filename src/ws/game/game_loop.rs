@@ -95,7 +95,7 @@ impl GameLoop {
                 cemetery,
             };
 
-            println!("start");
+            println!("start {} {}", num_day, is_day);
 
             self.addr.do_send(BotMsg {
                 channel_id: gameplay,
@@ -149,12 +149,17 @@ impl GameLoop {
     }
 
     fn do_end_day(&self, state: &CurrentState) {
+        for &user_id in state.alive.iter() {
+            self.set_pers(user_id, state.gameplay, true, false);
+        }
+
         let top_vote = get_top_vote(&mut self.info.lock().unwrap().vote_kill);
 
+        let mut cupid_couple = None;
         if let Some((uid, _)) = top_vote {
             let mut info_lock = self.info.lock().unwrap();
             let player = info_lock.players.get_mut(&uid).unwrap();
-            if player.get_killed() {
+            if player.get_killed(false) {
                 if player.get_role_name() == roles::WEREWOLF
                     || player.get_role_name() == roles::SUPERWOLF {
                     self.set_pers(uid, state.werewolf, false, false);
@@ -166,11 +171,24 @@ impl GameLoop {
                     msg: ttp::after_death(uid),
                     reply_to: None,
                 });
-            }
-        }
 
-        for &user_id in state.alive.iter() {
-            self.set_pers(user_id, state.gameplay, true, false);
+                if let Some(&couple) = info_lock.cupid_couple.get(&uid) {
+                    cupid_couple = Some((uid, couple));
+                    let player = info_lock.players.get_mut(&couple).unwrap();
+                    player.get_killed(true);
+                    if player.get_role_name() == roles::WEREWOLF
+                        || player.get_role_name() == roles::SUPERWOLF {
+                        self.set_pers(couple, state.werewolf, false, false);
+                    }
+                    self.set_pers(couple, state.gameplay, true, false);
+                    self.set_pers(couple, state.cemetery, true, true);
+                    self.addr.do_send(BotMsg {
+                        channel_id: state.cemetery,
+                        msg: ttp::after_death(couple),
+                        reply_to: None,
+                    });
+                }
+            }
         }
 
         self.addr.do_send(BotMsg {
@@ -178,6 +196,14 @@ impl GameLoop {
             msg: ttp::execution(top_vote),
             reply_to: None,
         });
+
+        if let Some((died, follow)) = cupid_couple {
+            self.addr.do_send(BotMsg {
+                channel_id: state.gameplay,
+                msg: ttp::couple_died(died, follow, false),
+                reply_to: None,
+            });
+        }
     }
 
     fn do_start_night(&self, state: &CurrentState) {
@@ -227,10 +253,16 @@ impl GameLoop {
         }
 
         let mut killed = vec![];
+        let mut cupid_couple = None;
         for user_id in info_lock.night_pending_kill.clone() {
             let player = info_lock.players.get_mut(&user_id).unwrap();
-            if player.get_killed() {
+            if player.get_killed(false) {
                 killed.push(user_id);
+                if let Some(&couple) = info_lock.cupid_couple.get(&user_id) {
+                    let player = info_lock.players.get_mut(&couple).unwrap();
+                    player.get_killed(true);
+                    cupid_couple = Some((user_id, couple));
+                }
             }
         }
         info_lock.night_pending_kill = HashSet::new();
@@ -252,6 +284,26 @@ impl GameLoop {
             self.addr.do_send(BotMsg {
                 channel_id: state.cemetery,
                 msg: ttp::after_death(uid),
+                reply_to: None,
+            });
+        }
+
+        if let Some((died, follow)) = cupid_couple {
+            let player = info_lock.players.get_mut(&follow).unwrap();
+            let is_wolf = player.get_role_name() == roles::WEREWOLF
+                || player.get_role_name() == roles::SUPERWOLF;
+
+            self.set_pers(follow, state.gameplay, true, false);
+            self.set_pers(follow, state.cemetery, true, true);
+            if is_wolf { self.set_pers(follow, state.werewolf, false, false); }
+            self.addr.do_send(BotMsg {
+                channel_id: state.gameplay,
+                msg: ttp::couple_died(died, follow, false),
+                reply_to: None,
+            });
+            self.addr.do_send(BotMsg {
+                channel_id: state.cemetery,
+                msg: ttp::after_death(follow),
                 reply_to: None,
             });
         }

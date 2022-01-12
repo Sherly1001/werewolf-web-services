@@ -288,3 +288,12 @@ pub fn curse_success(target_id: i64) -> String {
 pub fn reborned(user_id: i64) -> String {
     format!("Chào mừng <@{}> đã trở lại cuộc đời! Hãy trân trọng cơ hội thứ 2 này!", user_id)
 }
+
+pub fn couple_died(died: i64, follow: i64, is_day: bool) -> String {
+    match is_day {
+        true => format!("Do <@{}> đã chết nên <@{}> cũng đã treo cổ tự vẫn đi theo tình yêu của đời mình.
+===========================================================================", died, follow),
+        false => format!("<@{}> đã dừng cuộc chơi và bước trên con đường tìm kiếm <@{}>
+===========================================================================", follow, died),
+    }
+}

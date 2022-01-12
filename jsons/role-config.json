@@ -19,7 +19,7 @@
     "Guard": 1,
     "Lycan": [ 0.35, 2 ],
     "Villager": [ 0.05, 2],
-    "Witch": 1,
+    "Witch": [ 0.26, 1 ],
     "Fox": [ 0.13, 1],
     "Cupid": [ 0.174, 1 ],
     "Betrayer": [ 0.05, 1 ]

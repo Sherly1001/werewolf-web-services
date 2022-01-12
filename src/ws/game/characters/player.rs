@@ -98,9 +98,9 @@ pub trait Player {
         }
     }
 
-    fn get_killed(&mut self) -> bool {
+    fn get_killed(&mut self, is_suicide: bool) -> bool {
         let stt = self.get_status();
-        if *stt == PlayerStatus::Protected { false }
+        if *stt == PlayerStatus::Protected && !is_suicide { false }
         else {
             *stt = PlayerStatus::Killed;
             true
