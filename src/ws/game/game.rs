@@ -23,6 +23,7 @@ pub struct GameInfo {
 
     pub vote_kill: HashMap<i64, i64>,
     pub wolf_kill: HashMap<i64, i64>,
+    pub cupid_couple: HashMap<i64, i64>,
     pub night_pending_kill: HashSet<i64>,
     pub vote_starts: HashSet<i64>,
     pub vote_stops: HashSet<i64>,
@@ -51,6 +52,7 @@ impl GameInfo {
 
             vote_kill: HashMap::new(),
             wolf_kill: HashMap::new(),
+            cupid_couple: HashMap::new(),
             night_pending_kill: HashSet::new(),
             vote_starts: HashSet::new(),
             vote_stops: HashSet::new(),

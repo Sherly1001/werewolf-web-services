@@ -555,9 +555,58 @@ impl Handler<Ship> for Game {
             msg.channel_id,
         ) { return }
 
+        let user_list = self.info.lock().unwrap().get_alives();
+        let target1 = get_from_target(&user_list, msg.target1, Some(true));
+        if let Err(err) = target1 {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        let target1 = target1.unwrap();
+
+        let target2 = get_from_target(&user_list, msg.target2, Some(true));
+        if let Err(err) = target2 {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        let target2 = target2.unwrap();
+
         if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
             return;
         }
+
+        let mut info_lock = self.info.lock().unwrap();
+        let player1 = info_lock.players.get_mut(&target1).unwrap();
+        let p1_channel_id = *player1.get_channelid();
+        let p1_role = player1.get_role_name();
+
+        let player2 = info_lock.players.get_mut(&target2).unwrap();
+        let p2_channel_id = *player2.get_channelid();
+        let p2_role = player2.get_role_name();
+
+        info_lock.cupid_couple.insert(target1, target2);
+        info_lock.cupid_couple.insert(target2, target1);
+
+        self.addr.do_send(BotMsg {
+            channel_id: msg.channel_id,
+            msg: ttp::ship_success(target1, target2),
+            reply_to: Some(msg.msg_id),
+        });
+        self.addr.do_send(BotMsg {
+            channel_id: p1_channel_id,
+            msg: ttp::shipped_with(target2, p2_role),
+            reply_to: None,
+        });
+        self.addr.do_send(BotMsg {
+            channel_id: p2_channel_id,
+            msg: ttp::shipped_with(target1, p1_role),
+            reply_to: None,
+        });
     }
 }
 

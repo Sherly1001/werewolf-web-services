@@ -268,3 +268,12 @@ pub fn guard_yesterday_target() -> String {
 pub fn seer_use_skill(target_id: i64, is_wolf: bool) -> String {
     format!("Ồ, <@{}> {}là Sói. Pháp lực đã hết, tiên tri cần đi ngủ để hồi phục năng lượng.", target_id, if is_wolf { "" } else { "không phải " })
 }
+
+pub fn shipped_with(target_id: i64, role: &str) -> String {
+    format!("Bạn và <@{}> - {} đã được thần tình yêu chọn làm cặp đôi đồng sinh cộng tử.",
+        target_id, role)
+}
+
+pub fn ship_success(target1: i64, target2: i64) -> String {
+    format!("Bạn đã ghép đôi thành công <@{}> và <@{}>.", target1, target2)
+}
