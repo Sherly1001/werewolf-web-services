@@ -334,6 +334,9 @@ impl Handler<Stop> for Game {
         for &user in self.info.lock().unwrap().users.iter() {
             self.addr.do_send(UpdatePers(user));
         }
+
+        let next = self.info.lock().unwrap().next_flag.clone();
+        next.wake();
     }
 }
 

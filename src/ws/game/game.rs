@@ -388,6 +388,7 @@ impl Actor for Game {
 
 impl std::ops::Drop for Game {
     fn drop(&mut self) {
+        println!("drop");
         if self.info.lock().unwrap().is_started {
             self.stop().ok();
         }

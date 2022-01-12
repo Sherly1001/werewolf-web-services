@@ -80,7 +80,8 @@ impl GameLoop {
             }
         }
 
-        while !self.info.lock().unwrap().is_ended {
+        let winner;
+        loop {
             let is_day = self.info.lock().unwrap().is_day;
             let num_day = self.info.lock().unwrap().num_day;
             let (alive, died) = self.info.lock().unwrap().get_alives();
@@ -126,13 +127,34 @@ impl GameLoop {
 
             if !is_day { self.info.lock().unwrap().num_day += 1; }
             self.info.lock().unwrap().is_day = !is_day;
+
+            if let Some(role) = self.get_wining_role() {
+                winner = role;
+                self.info.lock().unwrap().is_ended = true;
+                break;
+            }
         }
 
-        for (_, player) in self.info.lock().unwrap().players.iter_mut() {
+        for (uid, player) in self.info.lock().unwrap().players.iter_mut() {
             player.on_end_game();
+            self.set_pers(*uid, gameplay, true, true);
         }
 
-        self.info.lock().unwrap().is_ended = true;
+        self.addr.do_send(BotMsg {
+            channel_id: gameplay,
+            msg: ttp::end_game(winner),
+            reply_to: None,
+        });
+        self.addr.do_send(BotMsg {
+            channel_id: gameplay,
+            msg: ttp::reveal_roles(&self.info.lock().unwrap().players),
+            reply_to: None,
+        });
+
+        println!("game wait to stop");
+        self.wait_stop();
+        next.wait().await;
+        println!("game wait to stop done");
     }
 
     fn do_start_day(&self, state: &CurrentState) {
@@ -273,6 +295,7 @@ impl GameLoop {
             reply_to: None,
         });
 
+        println!("killed: {:?}", killed);
         for uid in killed {
             let player = info_lock.players.get_mut(&uid).unwrap();
             let is_wolf = player.get_role_name() == roles::WEREWOLF
@@ -370,6 +393,58 @@ impl GameLoop {
         };
 
         Arbiter::spawn(fut);
+    }
+
+    fn wait_stop(&self) {
+        let next = self.info.lock().unwrap().next_flag.clone();
+        let id = self.id;
+        let fut = async move {
+            actix::clock::delay_for(Duration::from_secs(1800)).await;
+            next.wake();
+            println!("game {} stop timeout", id);
+        };
+        Arbiter::spawn(fut);
+    }
+
+    fn get_wining_role(&self) -> Option<&'static str> {
+        let info_lock = self.info.lock().unwrap();
+        let (alive, _) = info_lock.get_alives();
+        let num_alive = alive.len();
+        let num_wolf = alive.iter().filter(|uid| {
+            let role = info_lock.players.get(uid).unwrap()
+                .get_role_name();
+            role == roles::WEREWOLF || role == roles::SUPERWOLF
+        }).collect::<Vec<&i64>>().len();
+
+        if num_wolf != 0 && num_wolf * 2 < num_alive {
+            return None;
+        }
+
+        if num_alive == 2
+            && alive.iter().any(|uid| {
+                let role = info_lock.players.get(uid).unwrap().get_role_name();
+                role == roles::WEREWOLF || role == roles::SUPERWOLF
+            })
+            && alive.iter().any(|uid| {
+                let role = info_lock.players.get(uid).unwrap().get_role_name();
+                role == roles::WEREWOLF || role == roles::SUPERWOLF
+            })
+            && alive.iter().all(|uid| info_lock.cupid_couple.contains_key(uid)) {
+            return Some(roles::CUPID);
+        }
+
+        if num_wolf != 0 {
+            return Some(roles::WEREWOLF);
+        }
+
+        if alive.iter().any(|uid|
+            info_lock.players.get(uid).unwrap()
+                .get_role_name() == roles::FOX
+        ) {
+            return Some(roles::FOX);
+        }
+
+        Some(roles::VILLAGER)
     }
 
     fn set_pers(&self,

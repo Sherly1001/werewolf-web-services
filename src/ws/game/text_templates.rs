@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use super::characters::player::Player;
+
 pub fn not_in_game() -> String {
     format!("Bạn đang không ở trong game.")
 }
@@ -296,4 +298,16 @@ pub fn couple_died(died: i64, follow: i64, is_day: bool) -> String {
         false => format!("<@{}> đã dừng cuộc chơi và bước trên con đường tìm kiếm <@{}>
 ===========================================================================", follow, died),
     }
+}
+
+pub fn end_game(winner: &str) -> String {
+    format!("Trò chơi kết thúc với chiến thắng thuộc về phe {}.", winner)
+}
+
+pub fn reveal_roles(roles: &HashMap<i64, Box<dyn Player>>) -> String {
+    roles.iter().map(|(uid, p)| {
+        format!("<@{}> là {}", uid, p.get_role_name())
+    })
+    .collect::<Vec<String>>()
+    .join("\n")
 }
