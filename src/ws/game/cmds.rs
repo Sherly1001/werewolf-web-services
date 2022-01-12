@@ -368,7 +368,7 @@ impl Handler<Next> for Game {
     fn handle(&mut self, msg: Next, _: &mut Self::Context) -> Self::Result {
         let gameplay = *self.info.lock().unwrap()
             .channels.get(&GameChannel::GamePlay).unwrap();
-        if !self.asset_cmd_in(
+        if !self.assert_cmd_in(
             Some(gameplay),
             msg.user_id,
             msg.msg_id,
@@ -400,7 +400,7 @@ impl Handler<Vote> for Game {
     fn handle(&mut self, msg: Vote, _: &mut Self::Context) -> Self::Result {
         let gameplay = *self.info.lock().unwrap()
             .channels.get(&GameChannel::GamePlay).unwrap();
-        if !self.asset_cmd_in(
+        if !self.assert_cmd_in(
             Some(gameplay),
             msg.user_id,
             msg.msg_id,
@@ -433,7 +433,7 @@ impl Handler<Kill> for Game {
     fn handle(&mut self, msg: Kill, _ctx: &mut Self::Context) -> Self::Result {
         let werewolf = *self.info.lock().unwrap()
             .channels.get(&GameChannel::WereWolf).unwrap();
-        if !asset_cmd(
+        if !assert_cmd(
             self,
             &[roles::WEREWOLF, roles::SUPERWOLF],
             Some(werewolf),
@@ -471,7 +471,7 @@ impl Handler<Guard> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Guard, _ctx: &mut Self::Context) -> Self::Result {
-        if !asset_cmd(
+        if !assert_cmd(
             self,
             &[roles::GUARD],
             None,
@@ -521,7 +521,7 @@ impl Handler<Seer> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Seer, _ctx: &mut Self::Context) -> Self::Result {
-        if !asset_cmd(
+        if !assert_cmd(
             self,
             &[roles::SEER],
             None,
@@ -566,7 +566,7 @@ impl Handler<Ship> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Ship, _ctx: &mut Self::Context) -> Self::Result {
-        if !asset_cmd(
+        if !assert_cmd(
             self,
             &[roles::CUPID],
             None,
@@ -635,7 +635,7 @@ impl Handler<Reborn> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Reborn, _ctx: &mut Self::Context) -> Self::Result {
-        if !asset_cmd(
+        if !assert_cmd(
             self,
             &[roles::WITCH],
             None,
@@ -690,7 +690,7 @@ impl Handler<Curse> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Curse, _ctx: &mut Self::Context) -> Self::Result {
-        if !asset_cmd(
+        if !assert_cmd(
             self,
             &[roles::WITCH],
             None,
@@ -778,7 +778,7 @@ fn get_from_target(
     Ok(target)
 }
 
-fn asset_cmd(
+fn assert_cmd(
     game: &Game,
     roles: &[&'static str],
     channel_id: Option<i64>,
@@ -787,7 +787,7 @@ fn asset_cmd(
     msg_id: i64,
     msg_channel_id: i64,
 ) -> bool {
-    if !game.asset_cmd_in(
+    if !game.assert_cmd_in(
         channel_id,
         user_id,
         msg_id,

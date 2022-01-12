@@ -326,7 +326,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn asset_cmd_in(
+    pub fn assert_cmd_in(
         &self,
         channel_id: Option<i64>,
         user_id: i64,
