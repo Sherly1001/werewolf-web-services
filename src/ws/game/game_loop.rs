@@ -5,6 +5,7 @@ use actix::Arbiter;
 
 use crate::db;
 
+use super::characters::player::PlayerStatus;
 use super::characters::roles;
 use super::cmds::{BotMsg, UpdatePers};
 use super::game::GameChannel;
@@ -251,6 +252,24 @@ impl GameLoop {
             self.addr.do_send(BotMsg {
                 channel_id: state.cemetery,
                 msg: ttp::after_death(uid),
+                reply_to: None,
+            });
+        }
+
+        if let Some(uid) = info_lock.witch_reborn {
+            info_lock.witch_reborn = None;
+            let player = info_lock.players.get_mut(&uid).unwrap();
+            *player.get_status() = PlayerStatus::Alive;
+            let is_wolf = player.get_role_name() == roles::WEREWOLF
+                || player.get_role_name() == roles::SUPERWOLF;
+
+            self.set_pers(uid, state.cemetery, false, false);
+            self.set_pers(uid, state.gameplay, true, false);
+            if is_wolf { self.set_pers(uid, state.werewolf, true, true); }
+
+            self.addr.do_send(BotMsg {
+                channel_id: state.gameplay,
+                msg: ttp::reborned(uid),
                 reply_to: None,
             });
         }

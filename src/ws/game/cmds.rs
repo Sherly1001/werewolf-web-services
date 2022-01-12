@@ -624,13 +624,44 @@ impl Handler<Reborn> for Game {
             msg.channel_id,
         ) { return }
 
-        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
-            return;
+        let user_list = self.info.lock().unwrap().get_alives();
+        let target = get_from_target(&user_list, msg.target, Some(false));
+        if let Err(err) = target {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
         }
+        let target = target.unwrap();
+        let mut info_lock = self.info.lock().unwrap();
+        let player = info_lock.players.get_mut(&msg.user_id).unwrap();
 
-        self.info.lock().unwrap()
-            .players.get_mut(&msg.user_id).unwrap()
-            .set_power(false);
+        if !player.get_power() {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: ttp::out_of_power(),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        player.on_use_power();
+
+        if !player.get_mana() {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: ttp::out_of_mana(),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        player.on_use_mana();
+
+        info_lock.witch_reborn = Some(target);
+
+        self.addr.do_send(BotMsg {
+            channel_id: msg.channel_id,
+            msg: ttp::reborn_success(target),
+            reply_to: Some(msg.msg_id),
+        });
     }
 }
 
@@ -648,13 +679,44 @@ impl Handler<Curse> for Game {
             msg.channel_id,
         ) { return }
 
-        if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
-            return;
+        let user_list = self.info.lock().unwrap().get_alives();
+        let target = get_from_target(&user_list, msg.target, Some(true));
+        if let Err(err) = target {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
         }
+        let target = target.unwrap();
+        let mut info_lock = self.info.lock().unwrap();
+        let player = info_lock.players.get_mut(&msg.user_id).unwrap();
 
-        self.info.lock().unwrap()
-            .players.get_mut(&msg.user_id).unwrap()
-            .set_power2(false);
+        if !player.get_power2() {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: ttp::out_of_power(),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        player.on_use_power2();
+
+        if !player.get_mana() {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: ttp::out_of_mana(),
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        player.on_use_mana();
+
+        info_lock.night_pending_kill.insert(target);
+
+        self.addr.do_send(BotMsg {
+            channel_id: msg.channel_id,
+            msg: ttp::curse_success(target),
+            reply_to: Some(msg.msg_id),
+        });
     }
 }
 

@@ -29,8 +29,16 @@ pub trait Player {
         false
     }
 
+    fn get_power2(&mut self) -> bool {
+        false
+    }
+
     fn on_use_power(&mut self) {
         self.set_power(false);
+    }
+
+    fn on_use_power2(&mut self) {
+        self.set_power2(false);
     }
 
     fn get_mana(&mut self) -> bool {

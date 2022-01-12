@@ -216,8 +216,7 @@ pub fn list_killed(list: &Vec<i64>) -> String {
             .collect::<Vec<String>>()
             .join(", ")
             .as_str();
-        if list.len() == 1 { s += " " }
-        s += "đã bị mất tích một cách bí ẩn.\n";
+        s += " đã bị mất tích một cách bí ẩn.\n";
     }
 
     s += "===========================================================================";
@@ -276,4 +275,16 @@ pub fn shipped_with(target_id: i64, role: &str) -> String {
 
 pub fn ship_success(target1: i64, target2: i64) -> String {
     format!("Bạn đã ghép đôi thành công <@{}> và <@{}>.", target1, target2)
+}
+
+pub fn reborn_success(target_id: i64) -> String {
+    format!("Bạn đã phục sinh thành công <@{}>.", target_id)
+}
+
+pub fn curse_success(target_id: i64) -> String {
+    format!("Bạn đã nguyền rủa thành công <@{}>.", target_id)
+}
+
+pub fn reborned(user_id: i64) -> String {
+    format!("Chào mừng <@{}> đã trở lại cuộc đời! Hãy trân trọng cơ hội thứ 2 này!", user_id)
 }

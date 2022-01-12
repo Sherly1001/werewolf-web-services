@@ -30,6 +30,7 @@ pub struct GameInfo {
     pub vote_nexts: HashSet<i64>,
 
     pub guard_yesterday_target: Option<(i64, u16)>,
+    pub witch_reborn: Option<i64>,
 
     pub next_flag: NextFut,
     pub timmer: (u64, u64, u64),
@@ -59,6 +60,7 @@ impl GameInfo {
             vote_nexts: HashSet::new(),
 
             guard_yesterday_target: None,
+            witch_reborn: None,
 
             next_flag: NextFut::new(),
             timmer: (180, 60, 30),
