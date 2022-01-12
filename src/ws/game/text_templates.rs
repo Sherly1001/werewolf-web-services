@@ -264,3 +264,7 @@ pub fn guard_success(target_id: i64) -> String {
 pub fn guard_yesterday_target() -> String {
     format!("Hôm qua bạn đã bảo vệ người này. Hãy đổi mục tiêu khác!")
 }
+
+pub fn seer_use_skill(target_id: i64, is_wolf: bool) -> String {
+    format!("Ồ, <@{}> {}là Sói. Pháp lực đã hết, tiên tri cần đi ngủ để hồi phục năng lượng.", target_id, if is_wolf { "" } else { "không phải " })
+}

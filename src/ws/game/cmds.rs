@@ -471,14 +471,10 @@ impl Handler<Guard> for Game {
         }
         let target = target.unwrap();
 
-        let personal_channel = *self.info.lock().unwrap()
-            .players.get_mut(&msg.user_id).unwrap()
-            .get_channelid();
-
         if let Some((old, _)) = self.info.lock().unwrap().guard_yesterday_target {
             if old == target {
                 return self.addr.do_send(BotMsg {
-                    channel_id: personal_channel,
+                    channel_id: msg.channel_id,
                     msg: ttp::guard_yesterday_target(),
                     reply_to: Some(msg.msg_id),
                 });
@@ -493,7 +489,7 @@ impl Handler<Guard> for Game {
         info_lock.players.get_mut(&target).unwrap().get_protected();
         info_lock.guard_yesterday_target = Some((target, info_lock.num_day));
         self.addr.do_send(BotMsg {
-            channel_id: personal_channel,
+            channel_id: msg.channel_id,
             msg: ttp::guard_success(target),
             reply_to: Some(msg.msg_id),
         });
@@ -514,9 +510,34 @@ impl Handler<Seer> for Game {
             msg.channel_id,
         ) { return }
 
+        let user_list = self.info.lock().unwrap().get_alives();
+        let target = get_from_target(&user_list, msg.target, Some(true));
+        if let Err(err) = target {
+            return self.addr.do_send(BotMsg {
+                channel_id: msg.channel_id,
+                msg: err,
+                reply_to: Some(msg.msg_id),
+            });
+        }
+        let target = target.unwrap();
+
         if !assert_use_skill(self, msg.user_id, msg.msg_id, msg.channel_id) {
             return;
         }
+
+        let mut info_lock = self.info.lock().unwrap();
+        let player = info_lock.players.get_mut(&target).unwrap();
+        let is_wolf = player.get_role_name() == roles::WEREWOLF
+            || player.get_role_name() == roles::LYCAN;
+        if player.get_role_name() == roles::FOX {
+            info_lock.night_pending_kill.insert(target);
+        }
+
+        self.addr.do_send(BotMsg {
+            channel_id: msg.channel_id,
+            msg: ttp::seer_use_skill(target, is_wolf),
+            reply_to: Some(msg.msg_id),
+        });
     }
 }
 
