@@ -43,8 +43,4 @@ impl Player for Lycan {
     fn get_addr(&mut self) -> &mut Addr<ChatServer> {
         &mut self.addr
     }
-
-    fn on_day(&mut self) {}
-
-    fn on_night(&mut self) {}
 }

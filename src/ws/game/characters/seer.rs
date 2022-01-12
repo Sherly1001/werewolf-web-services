@@ -1,6 +1,6 @@
 use actix::Addr;
 
-use crate::ws::ChatServer;
+use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
 
 use super::{player::{PlayerStatus, Player}, roles};
 
@@ -10,6 +10,7 @@ pub struct Seer {
     pub personal_channel: i64,
     pub status: PlayerStatus,
     pub addr: Addr<ChatServer>,
+    pub mana: bool,
 }
 
 impl Seer {
@@ -19,6 +20,7 @@ impl Seer {
             personal_channel: 0,
             status: PlayerStatus::Alive,
             addr,
+            mana: false,
         }
     }
 }
@@ -44,7 +46,27 @@ impl Player for Seer {
         &mut self.addr
     }
 
-    fn on_day(&mut self) {}
+    fn on_action(&self, bot_prefix: &str) {
+        self.addr.do_send(BotMsg {
+            channel_id: self.personal_channel,
+            msg: ttp::seer_action(bot_prefix),
+            reply_to: None,
+        });
+    }
 
-    fn on_night(&mut self) {}
+    fn on_night(&mut self, _num_day: u16) {
+        self.mana = true;
+    }
+
+    fn get_power(&mut self) -> bool {
+        true
+    }
+
+    fn get_mana(&mut self) -> bool {
+        self.mana
+    }
+
+    fn set_mana(&mut self, mana: bool) {
+        self.mana = mana;
+    }
 }

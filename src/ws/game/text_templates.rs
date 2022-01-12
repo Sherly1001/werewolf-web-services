@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use super::characters::player::Player;
+
 pub fn not_in_game() -> String {
     format!("Bạn đang không ở trong game.")
 }
@@ -40,6 +42,10 @@ pub fn start_game() -> String {
     format!("2/3 người chơi đã sẵn sàng, trò chơi chuẩn bị bắt đầu.")
 }
 
+pub fn new_wolf(user_id: i64) -> String {
+    format!("Chào sói <@{}>.", user_id)
+}
+
 pub fn on_start_game(role: &'static str) -> String {
     format!("Chào mừng, vai của bạn là {}.", role)
 }
@@ -77,7 +83,7 @@ pub fn user_next(user_id: i64, numvote: usize, numplayer: usize) -> String {
             user_id, numvote, numplayer)
 }
 
-pub fn new_pharse(bot_prefix: &str, num_day: i16, is_day: bool) -> String {
+pub fn new_phase(bot_prefix: &str, num_day: u16, is_day: bool) -> String {
     match is_day {
         true => new_day(bot_prefix, num_day),
         false => new_night(),
@@ -119,20 +125,26 @@ pub fn player_not_in_game(user_id: i64) -> String {
 }
 
 pub fn player_died() -> String {
-    format!("Người ta đã hẹo rồi con vote làm gì.")
+    format!("Người ta đã hẹo rồi, đừng có vote nữa. Vote người nào còn sống thôi :3")
+}
+
+pub fn player_still_alive(user_id: i64) -> String {
+    format!("<@{}> còn sống mà bạn!", user_id)
 }
 
 pub fn invalid_index(from: usize, to: usize) -> String {
     format!("Giá trị không hợp lệ, chọn từ {} đến {}.", from, to)
 }
 
-pub fn alive_list(list: &Vec<i64>) -> String {
-    let mut s = String::from("Danh sách những người chơi còn sống:\n");
-
-    for (idx, id) in list.iter().enumerate() {
-        s += format!("{}: <@{}>\n", idx + 1, id).as_str();
-    }
-
+pub fn player_list(list: &Vec<i64>, is_alive: bool) -> String {
+    let mut s = format!("Danh sách những người chơi {}:\n",
+        if is_alive { "còn sống" } else { "đã chết" });
+    s += list.iter()
+        .enumerate()
+        .map(|(idx, id)| format!("{}: <@{}>", idx + 1, id))
+        .collect::<Vec<String>>()
+        .join("\n")
+        .as_str();
     s
 }
 
@@ -149,7 +161,7 @@ Hy vọng tình thế của làng có thể thay đổi sau quyết định này
     }
 }
 
-pub fn new_day(bot_prefix: &str, num_day: i16) -> String {
+pub fn new_day(bot_prefix: &str, num_day: u16) -> String {
     format!(
         "Một ngày mới bắt đầu, mọi người thức giấc. Báo cáo tình hình ngày {}:
 - Hãy nhập `{}vote <player>` để bỏ phiếu cho người bạn nghi là Sói!",
@@ -162,4 +174,140 @@ pub fn new_night() -> String {
 
 pub fn after_death(user_id: i64) -> String {
     format!("Chào mừng <@{}> đến với nghĩa trang vui vẻ ^^.", user_id)
+}
+
+pub fn seer_action(bot_prefix: &str) -> String {
+    format!(
+        "Tiên tri muốn thấy gì, từ ai?
+- Hãy làm phép bằng cách nhập `{}seer <player>` để xem người chơi đó là ai.", bot_prefix)
+}
+
+pub fn guard_action(bot_prefix: &str) -> String {
+    format!(
+        "Bảo vệ muốn ai sống qua đêm nay, hãy nhập `{}guard <player>` để người đó qua đêm an bình. Ví dụ: `{}guard 2`
+- Bạn chỉ sử dụng kỹ năng được 1 lần mỗi đêm. Hãy cẩn trọng!", bot_prefix, bot_prefix)
+}
+
+pub fn witch_action(bot_prefix: &str) -> String {
+    format!(
+        "Bạn có thể cứu 1 người và giết 1 người. Bạn chỉ được dùng mỗi kỹ năng 1 lần.
+- Nhập `{}reborn <player>` để cứu người.
+- Nhập `{}curse <player>` để nguyền rủa 1 người.", bot_prefix, bot_prefix)
+}
+
+pub fn cupid_action(bot_prefix: &str) -> String {
+    format!(
+        "Cupid muốn cho cặp đôi nào được đồng sinh cộng tử.
+- Hãy làm phép bằng cách nhập `{}ship <player 1> <player 2>` để ghép đôi.", bot_prefix)
+}
+
+pub fn before_wolf_action(bot_prefix: &str) -> String {
+    format!(
+        "Đêm nay, Sói muốn lấy mạng ai? Hãy nhập `{}kill <player>` để lặng lẽ xử lý nạn nhân. Ví dụ: `{}kill 2`", bot_prefix, bot_prefix)
+}
+
+pub fn list_killed(list: &Vec<i64>) -> String {
+    let mut s = String::new();
+
+    if list.is_empty() {
+        s += "Đêm qua, mọi người đều bình an.\n";
+    } else {
+        s += "Đêm qua, ";
+        s += list.iter()
+            .map(|id| format!("<@{}>", id))
+            .collect::<Vec<String>>()
+            .join(", ")
+            .as_str();
+        s += " đã bị mất tích một cách bí ẩn.\n";
+    }
+
+    s += "===========================================================================";
+
+    s
+}
+
+pub fn must_alive() -> String {
+    format!("Bạn phải còn sống để sủ dụng kỹ năng này!")
+}
+
+pub fn invalid_author() -> String {
+    format!("Hiện tại bạn không được phép dùng kỹ năng này!")
+}
+
+pub fn invalid_daytime() -> String {
+    format!("Hãy sử dụng vào ban ngày!")
+}
+
+pub fn invalid_nighttime() -> String {
+    format!("Hãy đợi tới đêm để sử dụng kỹ năng!")
+}
+
+pub fn out_of_mana() -> String {
+    format!("Bạn chỉ sử dụng kỹ năng được 1 lần mỗi đêm!")
+}
+
+pub fn out_of_power() -> String {
+    format!("Bạn chỉ sử dụng kỹ năng được 1 lần duy nhất!")
+}
+
+pub fn cupid_out_of_power() -> String {
+    format!("Ngày đầu tiên kết thúc, kỹ năng đã hết hiệu lực!")
+}
+
+pub fn wolf_kill(wolf_id: i64, target_id: i64) -> String {
+    format!("Sói <@{}> muốn xử lý <@{}> trong đêm nay.", wolf_id, target_id)
+}
+
+pub fn guard_success(target_id: i64) -> String {
+    format!("Đã bảo vệ thành công <@{}>.", target_id)
+}
+
+pub fn guard_yesterday_target() -> String {
+    format!("Hôm qua bạn đã bảo vệ người này. Hãy đổi mục tiêu khác!")
+}
+
+pub fn seer_use_skill(target_id: i64, is_wolf: bool) -> String {
+    format!("Ồ, <@{}> {}là Sói. Pháp lực đã hết, tiên tri cần đi ngủ để hồi phục năng lượng.", target_id, if is_wolf { "" } else { "không phải " })
+}
+
+pub fn shipped_with(target_id: i64, role: &str) -> String {
+    format!("Bạn và <@{}> - {} đã được thần tình yêu chọn làm cặp đôi đồng sinh cộng tử.",
+        target_id, role)
+}
+
+pub fn ship_success(target1: i64, target2: i64) -> String {
+    format!("Bạn đã ghép đôi thành công <@{}> và <@{}>.", target1, target2)
+}
+
+pub fn reborn_success(target_id: i64) -> String {
+    format!("Bạn đã phục sinh thành công <@{}>.", target_id)
+}
+
+pub fn curse_success(target_id: i64) -> String {
+    format!("Bạn đã nguyền rủa thành công <@{}>.", target_id)
+}
+
+pub fn reborned(user_id: i64) -> String {
+    format!("Chào mừng <@{}> đã trở lại cuộc đời! Hãy trân trọng cơ hội thứ 2 này!", user_id)
+}
+
+pub fn couple_died(died: i64, follow: i64, is_day: bool) -> String {
+    match is_day {
+        true => format!("Do <@{}> đã chết nên <@{}> cũng đã treo cổ tự vẫn đi theo tình yêu của đời mình.
+===========================================================================", died, follow),
+        false => format!("<@{}> đã dừng cuộc chơi và bước trên con đường tìm kiếm <@{}>
+===========================================================================", follow, died),
+    }
+}
+
+pub fn end_game(winner: &str) -> String {
+    format!("Trò chơi kết thúc với chiến thắng thuộc về phe {}.", winner)
+}
+
+pub fn reveal_roles(roles: &HashMap<i64, Box<dyn Player>>) -> String {
+    roles.iter().map(|(uid, p)| {
+        format!("<@{}> là {}", uid, p.get_role_name())
+    })
+    .collect::<Vec<String>>()
+    .join("\n")
 }

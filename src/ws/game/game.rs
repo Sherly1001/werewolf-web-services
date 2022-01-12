@@ -19,12 +19,18 @@ pub struct GameInfo {
     pub is_ended: bool,
     pub is_stopped: bool,
     pub is_day: bool,
-    pub num_day: i16,
+    pub num_day: u16,
 
     pub vote_kill: HashMap<i64, i64>,
+    pub wolf_kill: HashMap<i64, i64>,
+    pub cupid_couple: HashMap<i64, i64>,
+    pub night_pending_kill: HashSet<i64>,
     pub vote_starts: HashSet<i64>,
     pub vote_stops: HashSet<i64>,
     pub vote_nexts: HashSet<i64>,
+
+    pub guard_yesterday_target: Option<(i64, u16)>,
+    pub witch_reborn: Option<i64>,
 
     pub next_flag: NextFut,
     pub timmer: (u64, u64, u64),
@@ -46,9 +52,15 @@ impl GameInfo {
             num_day: 0,
 
             vote_kill: HashMap::new(),
+            wolf_kill: HashMap::new(),
+            cupid_couple: HashMap::new(),
+            night_pending_kill: HashSet::new(),
             vote_starts: HashSet::new(),
             vote_stops: HashSet::new(),
             vote_nexts: HashSet::new(),
+
+            guard_yesterday_target: None,
+            witch_reborn: None,
 
             next_flag: NextFut::new(),
             timmer: (180, 60, 30),
@@ -313,6 +325,61 @@ impl Game {
         info.is_stopped = true;
         Ok(())
     }
+
+    pub fn assert_cmd_in(
+        &self,
+        channel_id: Option<i64>,
+        user_id: i64,
+        msg_id: i64,
+        msg_channel_id: i64,
+    ) -> bool {
+        if !self.must_in_game(user_id, msg_id) { return false }
+        use super::cmds::BotMsg;
+        use super::text_templates as ttp;
+
+        let channel_id = channel_id.unwrap_or(*self.info.lock().unwrap()
+            .players.get_mut(&user_id).unwrap()
+            .get_channelid()
+        );
+
+        if msg_channel_id != channel_id {
+            self.addr.do_send(BotMsg {
+                channel_id: msg_channel_id,
+                msg: ttp::must_in_channel(channel_id),
+                reply_to: Some(msg_id),
+            });
+            return false;
+        }
+
+        if !self.info.lock().unwrap().is_started {
+            self.addr.do_send(BotMsg {
+                channel_id,
+                msg: ttp::game_is_not_started(),
+                reply_to: Some(msg_id),
+            });
+            return false;
+        }
+
+        {
+            let info = self.info.lock().unwrap();
+            if info.is_ended || info.is_stopped {
+                self.addr.do_send(BotMsg {
+                    channel_id,
+                    msg: ttp::stop_game(),
+                    reply_to: Some(msg_id),
+                });
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn assert_role(&self, role: &'static str, user_id: i64) -> bool {
+        role == self.info.lock().unwrap()
+            .players.get(&user_id).unwrap()
+            .get_role_name()
+    }
 }
 
 impl Actor for Game {
@@ -321,6 +388,7 @@ impl Actor for Game {
 
 impl std::ops::Drop for Game {
     fn drop(&mut self) {
+        println!("drop");
         if self.info.lock().unwrap().is_started {
             self.stop().ok();
         }

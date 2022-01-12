@@ -1,6 +1,6 @@
 use actix::Addr;
 
-use crate::ws::ChatServer;
+use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
 
 use super::{player::{PlayerStatus, Player}, roles};
 
@@ -10,6 +10,8 @@ pub struct Witch {
     pub personal_channel: i64,
     pub status: PlayerStatus,
     pub addr: Addr<ChatServer>,
+    pub power: (bool, bool),
+    pub mana: bool,
 }
 
 impl Witch {
@@ -19,6 +21,8 @@ impl Witch {
             personal_channel: 0,
             status: PlayerStatus::Alive,
             addr,
+            power: (true, true),
+            mana: false,
         }
     }
 }
@@ -44,7 +48,39 @@ impl Player for Witch {
         &mut self.addr
     }
 
-    fn on_day(&mut self) {}
+    fn on_action(&self, bot_prefix: &str) {
+        self.addr.do_send(BotMsg {
+            channel_id: self.personal_channel,
+            msg: ttp::witch_action(bot_prefix),
+            reply_to: None,
+        });
+    }
 
-    fn on_night(&mut self) {}
+    fn on_night(&mut self, _num_day: u16) {
+        self.mana = true;
+    }
+
+    fn get_power(&mut self) -> bool {
+        self.power.0
+    }
+
+    fn get_power2(&mut self) -> bool {
+        self.power.1
+    }
+
+    fn set_power(&mut self, power: bool) {
+        self.power.0 = power
+    }
+
+    fn set_power2(&mut self, power: bool) {
+        self.power.1 = power
+    }
+
+    fn get_mana(&mut self) -> bool {
+        self.mana
+    }
+
+    fn set_mana(&mut self, mana: bool) {
+        self.mana = mana;
+    }
 }

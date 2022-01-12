@@ -44,7 +44,11 @@ impl Player for Werewolf {
         &mut self.addr
     }
 
-    fn on_day(&mut self) {}
+    fn get_power(&mut self) ->bool {
+        true
+    }
 
-    fn on_night(&mut self) {}
+    fn get_mana(&mut self) -> bool {
+        true
+    }
 }
