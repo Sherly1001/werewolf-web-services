@@ -46,24 +46,12 @@ impl GameLoop {
     pub async fn run(&self) {
         let next = self.info.lock().unwrap().next_flag.clone();
 
-        let gameplay = *self.info
-            .lock()
-            .unwrap()
-            .channels
-            .get(&GameChannel::GamePlay)
-            .unwrap();
-        let werewolf = *self.info
-            .lock()
-            .unwrap()
-            .channels
-            .get(&GameChannel::WereWolf)
-            .unwrap();
-        let cemetery = *self.info
-            .lock()
-            .unwrap()
-            .channels
-            .get(&GameChannel::Cemetery)
-            .unwrap();
+        let gameplay = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::GamePlay).unwrap();
+        let werewolf = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::WereWolf).unwrap();
+        let cemetery = *self.info.lock().unwrap()
+            .channels.get(&GameChannel::Cemetery).unwrap();
 
         let bot_prefix = self.bot_prefix.clone();
 
