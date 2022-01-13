@@ -75,3 +75,26 @@ pub fn get_info(conn: &PgConnection, user_id: i64) -> QueryResult<User> {
     users::table.find(user_id)
         .get_result::<User>(conn)
 }
+
+pub fn update_win(
+    conn: &PgConnection,
+    user_id: i64,
+    is_winner: bool,
+) -> QueryResult<usize> {
+    let mut user = users::table.find(user_id)
+        .get_result::<User>(conn)?;
+    let user_filter = users::table.find(user_id);
+
+    if is_winner {
+        user.win = user.win.map(|w| w + 1);
+    } else {
+        user.lose = user.lose.map(|l| l + 1);
+    }
+
+    diesel::update(user_filter)
+        .set((
+            users::win.eq(user.win),
+            users::lose.eq(user.lose),
+        ))
+        .execute(conn)
+}
