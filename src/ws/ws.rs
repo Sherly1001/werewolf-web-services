@@ -10,7 +10,9 @@ use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext
 
 use crate::config::{AppState, DbPool};
 
+use super::cmd_parser::GameEvent;
 use super::game::cmds::UpdatePers;
+use super::services::get_info;
 use super::{
     message_handler::msg_handler,
     cmd_parser::Cmd,
@@ -261,12 +263,19 @@ impl Handler<GameMsg> for ChatServer {
             .map(|u| u.id)
             .collect::<Vec<i64>>();
 
+        let event = msg.event.clone();
         let cmd = &Cmd::GameEvent(msg.event);
         for (uid, ws) in self.users.iter() {
             if !uids.contains(uid) { continue }
             for (wsi, client) in self.clients.iter() {
                 if !ws.contains(wsi) { continue }
                 client.do_send(Msg(cmd.to_string())).ok();
+                if let GameEvent::EndGame { .. } = event {
+                    if let Ok(user) = get_info(self, *uid) {
+                        client.do_send(Msg(
+                            Cmd::GetUserInfoRes(user).to_string())).ok();
+                    }
+                }
             }
         }
     }

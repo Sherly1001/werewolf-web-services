@@ -50,7 +50,7 @@ pub enum Cmd {
     Error(String),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum GameEvent {
     UserJoin(String),
     UserLeave(String),
