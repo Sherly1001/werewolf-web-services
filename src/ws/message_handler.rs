@@ -132,11 +132,18 @@ fn game_commands(
     match cmds[0] {
         "join" => {
             must_in_channel(1, channel_id)?;
-            if let (Some(game), Some(cur)) =
-                (srv.get_user_game(user_id), srv.current_game.as_ref()) {
+            let user_game = srv.get_user_game(user_id);
+            let cur_game = srv.current_game.as_ref();
+
+            if let (Some(game), Some(cur)) = (user_game, cur_game) {
                 if game != cur { return Err(ttp::in_other_game()) }
             }
-            match srv.current_game.as_ref() {
+
+            if let Some(_) = user_game {
+                return Err(ttp::in_other_game());
+            }
+
+            match cur_game {
                 Some(game) => {
                     game.do_send(game_cmds::Join { user_id, msg_id });
                 }
