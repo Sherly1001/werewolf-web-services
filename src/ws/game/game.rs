@@ -337,23 +337,9 @@ impl Game {
         use super::cmds::BotMsg;
         use super::text_templates as ttp;
 
-        let channel_id = channel_id.unwrap_or(*self.info.lock().unwrap()
-            .players.get_mut(&user_id).unwrap()
-            .get_channelid()
-        );
-
-        if msg_channel_id != channel_id {
-            self.addr.do_send(BotMsg {
-                channel_id: msg_channel_id,
-                msg: ttp::must_in_channel(channel_id),
-                reply_to: Some(msg_id),
-            });
-            return false;
-        }
-
         if !self.info.lock().unwrap().is_started {
             self.addr.do_send(BotMsg {
-                channel_id,
+                channel_id: msg_channel_id,
                 msg: ttp::game_is_not_started(),
                 reply_to: Some(msg_id),
             });
@@ -364,12 +350,28 @@ impl Game {
             let info = self.info.lock().unwrap();
             if info.is_ended || info.is_stopped {
                 self.addr.do_send(BotMsg {
-                    channel_id,
+                    channel_id: msg_channel_id,
                     msg: ttp::stop_game(),
                     reply_to: Some(msg_id),
                 });
                 return false;
             }
+        }
+
+        let channel_id = match channel_id {
+            Some(id) => id,
+            None => *self.info.lock().unwrap()
+                .players.get_mut(&user_id).unwrap()
+                .get_channelid(),
+        };
+
+        if msg_channel_id != channel_id {
+            self.addr.do_send(BotMsg {
+                channel_id: msg_channel_id,
+                msg: ttp::must_in_channel(channel_id),
+                reply_to: Some(msg_id),
+            });
+            return false;
         }
 
         true
