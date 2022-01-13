@@ -261,7 +261,7 @@ impl Handler<GameMsg> for ChatServer {
             .map(|u| u.id)
             .collect::<Vec<i64>>();
 
-        let cmd = &Cmd::GameCmd(msg.cmd);
+        let cmd = &Cmd::GameEvent(msg.event);
         for (uid, ws) in self.users.iter() {
             if !uids.contains(uid) { continue }
             for (wsi, client) in self.clients.iter() {

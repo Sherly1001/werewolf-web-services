@@ -46,12 +46,12 @@ pub enum Cmd {
     GetPersRes(HashMap<String, ChannelPermission>),
     UserOnline(UserDisplay),
     UserOffline(UserDisplay),
-    GameCmd(GameCmd),
+    GameEvent(GameEvent),
     Error(String),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum GameCmd {
+pub enum GameEvent {
 }
 
 impl Cmd {

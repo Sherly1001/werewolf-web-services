@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use actix::{Message, Handler};
 
-use crate::ws::cmd_parser::GameCmd;
+use crate::ws::cmd_parser::GameEvent;
 
 use super::characters::roles;
 use super::{Game, game::GameChannel};
@@ -122,7 +122,7 @@ pub struct BotMsg {
 #[rtype(result = "()")]
 pub struct GameMsg {
     pub game_id: i64,
-    pub cmd: GameCmd,
+    pub event: GameEvent,
 }
 
 #[derive(Message, Debug)]
