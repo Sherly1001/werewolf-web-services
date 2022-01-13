@@ -139,8 +139,8 @@ fn game_commands(
                 if game != cur { return Err(ttp::in_other_game()) }
             }
 
-            if let Some(_) = user_game {
-                return Err(ttp::in_other_game());
+            if let Some(game) = user_game {
+                return Ok(game.do_send(game_cmds::Join { user_id, msg_id }));
             }
 
             match cur_game {
