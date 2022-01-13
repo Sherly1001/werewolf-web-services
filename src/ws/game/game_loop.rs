@@ -155,7 +155,7 @@ impl GameLoop {
 
         self.addr.do_send(BotMsg {
             channel_id: gameplay,
-            msg: ttp::end_game(winner),
+            msg: ttp::end_game(&winner),
             reply_to: None,
         });
         self.addr.do_send(BotMsg {
@@ -419,7 +419,7 @@ impl GameLoop {
         Arbiter::spawn(fut);
     }
 
-    fn get_wining_role(&self) -> Option<&'static str> {
+    fn get_wining_role(&self) -> Option<String> {
         let info_lock = self.info.lock().unwrap();
         let (alive, _) = info_lock.get_alives();
         let num_alive = alive.len();
@@ -443,21 +443,25 @@ impl GameLoop {
                 role == roles::WEREWOLF || role == roles::SUPERWOLF
             })
             && alive.iter().all(|uid| info_lock.cupid_couple.contains_key(uid)) {
-            return Some(roles::CUPID);
+            return Some(String::from("Couple: ") + &alive.iter()
+                .map(|uid| format!("<@{}>", uid))
+                .collect::<Vec<String>>()
+                .join(", ")
+            );
         }
 
         if num_wolf != 0 {
-            return Some(roles::WEREWOLF);
+            return Some(roles::WEREWOLF.to_string());
         }
 
         if alive.iter().any(|uid|
             info_lock.players.get(uid).unwrap()
                 .get_role_name() == roles::FOX
         ) {
-            return Some(roles::FOX);
+            return Some(roles::FOX.to_string());
         }
 
-        Some(roles::VILLAGER)
+        Some(roles::VILLAGER.to_string())
     }
 
     fn set_pers(&self,
