@@ -311,3 +311,12 @@ pub fn reveal_roles(roles: &HashMap<i64, Box<dyn Player>>) -> String {
     .collect::<Vec<String>>()
     .join("\n")
 }
+
+pub fn wolf_list(list: &Vec<&i64>) -> String {
+    format!("Danh sách Sói: {}.",
+        list.iter()
+            .map(|uid| format!("<@{}>", uid))
+            .collect::<Vec<String>>()
+            .join(", ")
+    )
+}

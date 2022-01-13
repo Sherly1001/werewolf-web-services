@@ -56,8 +56,14 @@ impl GameLoop {
 
         let bot_prefix = self.bot_prefix.clone();
 
-        let (alive, _died) = self.info.lock().unwrap().get_alives();
-        for (&uid, player) in self.info.lock().unwrap().players.iter_mut() {
+        let mut info_lock = self.info.lock().unwrap();
+        let (alive, _died) = info_lock.get_alives();
+        let wolf_list = alive.iter().filter(|uid| {
+            let role = info_lock.players.get(uid).unwrap().get_role_name();
+            role == roles::WEREWOLF || role == roles::SUPERWOLF
+        })
+        .collect();
+        for (&uid, player) in info_lock.players.iter_mut() {
             player.on_start_game(&bot_prefix);
             let role = player.get_role_name();
             if role == roles::WEREWOLF || role == roles::SUPERWOLF {
@@ -77,8 +83,15 @@ impl GameLoop {
                     msg: ttp::player_list(&alive, true),
                     reply_to: None,
                 });
+            } else if role == roles::BETRAYER {
+                self.addr.do_send(BotMsg {
+                    channel_id: *player.get_channelid(),
+                    msg: ttp::wolf_list(&wolf_list),
+                    reply_to: None,
+                });
             }
         }
+        drop(info_lock);
 
         let winner;
         loop {
