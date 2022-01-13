@@ -46,12 +46,32 @@ pub enum Cmd {
     GetPersRes(HashMap<String, ChannelPermission>),
     UserOnline(UserDisplay),
     UserOffline(UserDisplay),
-    GameCmd(GameCmd),
+    GameEvent(GameEvent),
     Error(String),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum GameCmd {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum GameEvent {
+    UserJoin(String),
+    UserLeave(String),
+    UserStart(String),
+    UserStop(String),
+    UserNext(String),
+    UserVote {
+        user_id: String,
+        vote_for: String,
+    },
+    PlayerDied(String),
+    PlayerReborn(String),
+    NewPhase {
+        num_day: u16,
+        is_day: bool,
+    },
+    StartGame,
+    EndGame {
+        winner: String,
+    },
+    StopGame,
 }
 
 impl Cmd {

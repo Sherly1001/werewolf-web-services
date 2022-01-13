@@ -4,6 +4,8 @@ use std::time::Duration;
 use actix::Arbiter;
 
 use crate::db;
+use crate::ws::cmd_parser::GameEvent;
+use crate::ws::game::cmds::GameMsg;
 
 use super::characters::player::PlayerStatus;
 use super::characters::roles;
@@ -56,8 +58,14 @@ impl GameLoop {
 
         let bot_prefix = self.bot_prefix.clone();
 
-        let (alive, _died) = self.info.lock().unwrap().get_alives();
-        for (&uid, player) in self.info.lock().unwrap().players.iter_mut() {
+        let mut info_lock = self.info.lock().unwrap();
+        let (alive, _died) = info_lock.get_alives();
+        let wolf_list = alive.iter().filter(|uid| {
+            let role = info_lock.players.get(uid).unwrap().get_role_name();
+            role == roles::WEREWOLF || role == roles::SUPERWOLF
+        })
+        .collect();
+        for (&uid, player) in info_lock.players.iter_mut() {
             player.on_start_game(&bot_prefix);
             let role = player.get_role_name();
             if role == roles::WEREWOLF || role == roles::SUPERWOLF {
@@ -77,8 +85,15 @@ impl GameLoop {
                     msg: ttp::player_list(&alive, true),
                     reply_to: None,
                 });
+            } else if role == roles::BETRAYER {
+                self.addr.do_send(BotMsg {
+                    channel_id: *player.get_channelid(),
+                    msg: ttp::wolf_list(&wolf_list),
+                    reply_to: None,
+                });
             }
         }
+        drop(info_lock);
 
         let winner;
         loop {
@@ -102,6 +117,13 @@ impl GameLoop {
                 channel_id: gameplay,
                 msg: ttp::new_phase(&bot_prefix, num_day, is_day),
                 reply_to: None,
+            });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::NewPhase {
+                    num_day,
+                    is_day,
+                },
             });
 
             if is_day {
@@ -135,20 +157,28 @@ impl GameLoop {
             }
         }
 
-        for (uid, player) in self.info.lock().unwrap().players.iter_mut() {
+        for (&uid, player) in self.info.lock().unwrap().players.iter_mut() {
             player.on_end_game();
-            self.set_pers(*uid, gameplay, true, true);
+            self.update_win(uid, winner.1.contains(&uid));
+            self.set_pers(uid, gameplay, true, true);
         }
 
+        let winner = winner.0;
         self.addr.do_send(BotMsg {
             channel_id: gameplay,
-            msg: ttp::end_game(winner),
+            msg: ttp::end_game(&winner),
             reply_to: None,
         });
         self.addr.do_send(BotMsg {
             channel_id: gameplay,
             msg: ttp::reveal_roles(&self.info.lock().unwrap().players),
             reply_to: None,
+        });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::EndGame {
+                winner,
+            },
         });
 
         println!("game wait to stop");
@@ -193,6 +223,10 @@ impl GameLoop {
                     msg: ttp::after_death(uid),
                     reply_to: None,
                 });
+                self.addr.do_send(GameMsg {
+                    game_id: self.id,
+                    event: GameEvent::PlayerDied(uid.to_string()),
+                });
 
                 if let Some(&couple) = info_lock.cupid_couple.get(&uid) {
                     cupid_couple = Some((uid, couple));
@@ -208,6 +242,10 @@ impl GameLoop {
                         channel_id: state.cemetery,
                         msg: ttp::after_death(couple),
                         reply_to: None,
+                    });
+                    self.addr.do_send(GameMsg {
+                        game_id: self.id,
+                        event: GameEvent::PlayerDied(couple.to_string()),
                     });
                 }
             }
@@ -309,6 +347,10 @@ impl GameLoop {
                 msg: ttp::after_death(uid),
                 reply_to: None,
             });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::PlayerDied(uid.to_string()),
+            });
         }
 
         if let Some((died, follow)) = cupid_couple {
@@ -329,6 +371,10 @@ impl GameLoop {
                 msg: ttp::after_death(follow),
                 reply_to: None,
             });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::PlayerDied(follow.to_string()),
+            });
         }
 
         if let Some(uid) = info_lock.witch_reborn {
@@ -346,6 +392,10 @@ impl GameLoop {
                 channel_id: state.gameplay,
                 msg: ttp::reborned(uid),
                 reply_to: None,
+            });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::PlayerReborn(uid.to_string()),
             });
         }
     }
@@ -406,45 +456,56 @@ impl GameLoop {
         Arbiter::spawn(fut);
     }
 
-    fn get_wining_role(&self) -> Option<&'static str> {
+    fn get_wining_role(&self) -> Option<(String, Vec<i64>)> {
         let info_lock = self.info.lock().unwrap();
         let (alive, _) = info_lock.get_alives();
         let num_alive = alive.len();
-        let num_wolf = alive.iter().filter(|uid| {
+        let wolf_list = alive.iter().filter(|uid| {
             let role = info_lock.players.get(uid).unwrap()
                 .get_role_name();
-            role == roles::WEREWOLF || role == roles::SUPERWOLF
-        }).collect::<Vec<&i64>>().len();
+            role == roles::WEREWOLF
+                || role == roles::SUPERWOLF
+                || role == roles::BETRAYER
+        }).map(|&uid| uid).collect::<Vec<i64>>();
+        let fox_list = alive.iter().filter(|uid| {
+            let role = info_lock.players.get(uid).unwrap()
+                .get_role_name();
+            role == roles::FOX
+        }).map(|&uid| uid).collect::<Vec<i64>>();
+        let num_wolf = wolf_list.len();
+        let roles_list = alive.iter()
+            .map(|uid| info_lock.players.get(uid).unwrap().get_role_name())
+            .collect::<Vec<&str>>();
 
         if num_wolf != 0 && num_wolf * 2 < num_alive {
             return None;
         }
 
         if num_alive == 2
-            && alive.iter().any(|uid| {
-                let role = info_lock.players.get(uid).unwrap().get_role_name();
+            && roles_list.iter().any(|&role|
                 role == roles::WEREWOLF || role == roles::SUPERWOLF
-            })
-            && alive.iter().any(|uid| {
-                let role = info_lock.players.get(uid).unwrap().get_role_name();
+            )
+            && roles_list.iter().any(|&role|
                 role == roles::WEREWOLF || role == roles::SUPERWOLF
-            })
+            )
             && alive.iter().all(|uid| info_lock.cupid_couple.contains_key(uid)) {
-            return Some(roles::CUPID);
+            return Some((String::from("Couple: ") + &alive.iter()
+                .map(|uid| format!("<@{}>", uid))
+                .collect::<Vec<String>>()
+                .join(", "),
+                alive,
+            ));
         }
 
         if num_wolf != 0 {
-            return Some(roles::WEREWOLF);
+            return Some((roles::WEREWOLF.to_string(), wolf_list));
         }
 
-        if alive.iter().any(|uid|
-            info_lock.players.get(uid).unwrap()
-                .get_role_name() == roles::FOX
-        ) {
-            return Some(roles::FOX);
+        if !fox_list.is_empty() {
+            return Some((roles::FOX.to_string(), fox_list));
         }
 
-        Some(roles::VILLAGER)
+        Some((roles::VILLAGER.to_string(), alive))
     }
 
     fn set_pers(&self,
@@ -458,6 +519,11 @@ impl GameLoop {
         db::channel::set_pers(&conn, id, user_id,
             channel_id, readable, sendable).ok();
         self.addr.do_send(UpdatePers(user_id));
+    }
+
+    fn update_win(&self, user_id: i64, is_winner: bool) {
+        let conn = get_conn(self.db_pool.clone());
+        db::user::update_win(&conn, user_id, is_winner).ok();
     }
 }
 
