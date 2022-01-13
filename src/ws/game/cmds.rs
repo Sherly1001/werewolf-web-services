@@ -192,6 +192,10 @@ impl Handler<Join> for Game {
             msg: format!("Hi <@{}>.", msg.user_id),
             reply_to: None,
         });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::UserJoin(msg.user_id.to_string()),
+        });
     }
 }
 
@@ -229,6 +233,10 @@ impl Handler<Leave> for Game {
                 .channels.get(&GameChannel::GamePlay).unwrap(),
             msg: format!("Bye <@{}>.", msg.user_id),
             reply_to: None,
+        });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::UserLeave(msg.user_id.to_string()),
         });
     }
 }
@@ -273,6 +281,10 @@ impl Handler<Start> for Game {
         let numvote = self.info.lock().unwrap().vote_starts.len();
         let numplayer = self.info.lock().unwrap().users.len();
         if numvote * 3 < numplayer * 2 {
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::UserStart(msg.user_id.to_string()),
+            });
             return self.addr.do_send(BotMsg {
                 channel_id,
                 msg: ttp::user_start(msg.user_id, numvote, numplayer),
@@ -298,6 +310,10 @@ impl Handler<Start> for Game {
             channel_id: 1,
             msg: ttp::start_game(),
             reply_to: Some(msg.msg_id),
+        });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::StartGame,
         });
 
         for &user in self.info.lock().unwrap().users.iter() {
@@ -330,6 +346,10 @@ impl Handler<Stop> for Game {
             let numvote = self.info.lock().unwrap().vote_stops.len();
             let numplayer = self.info.lock().unwrap().users.len();
             if numvote * 3 < numplayer * 2 {
+                self.addr.do_send(GameMsg {
+                    game_id: self.id,
+                    event: GameEvent::UserStop(msg.user_id.to_string()),
+                });
                 return self.addr.do_send(BotMsg {
                     channel_id,
                     msg: ttp::user_stop(msg.user_id, numvote, numplayer),
@@ -346,12 +366,16 @@ impl Handler<Stop> for Game {
             });
         }
 
-        self.addr.do_send(StopGame(self.id));
         self.addr.do_send(BotMsg {
             channel_id,
             msg: ttp::stop_game(),
             reply_to: Some(msg.msg_id),
         });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::StopGame,
+        });
+        self.addr.do_send(StopGame(self.id));
 
         for &user in self.info.lock().unwrap().users.iter() {
             self.addr.do_send(UpdatePers(user));
@@ -380,6 +404,10 @@ impl Handler<Next> for Game {
         let numvote = self.info.lock().unwrap().vote_nexts.len();
         let numplayer = self.info.lock().unwrap().users.len();
         if numvote * 3 < numplayer * 2 {
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::UserNext(msg.user_id.to_string()),
+            });
             return self.addr.do_send(BotMsg {
                 channel_id: gameplay,
                 msg: ttp::user_next(msg.user_id, numvote, numplayer),
@@ -423,6 +451,13 @@ impl Handler<Vote> for Game {
             channel_id: gameplay,
             msg: ttp::vote_kill(msg.user_id, vote_user),
             reply_to: Some(msg.msg_id),
+        });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::UserVote {
+                user_id: msg.user_id.to_string(),
+                vote_for: vote_user.to_string(),
+            },
         });
     }
 }

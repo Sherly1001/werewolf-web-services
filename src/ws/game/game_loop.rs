@@ -4,6 +4,8 @@ use std::time::Duration;
 use actix::Arbiter;
 
 use crate::db;
+use crate::ws::cmd_parser::GameEvent;
+use crate::ws::game::cmds::GameMsg;
 
 use super::characters::player::PlayerStatus;
 use super::characters::roles;
@@ -116,6 +118,13 @@ impl GameLoop {
                 msg: ttp::new_phase(&bot_prefix, num_day, is_day),
                 reply_to: None,
             });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::NewPhase {
+                    num_day,
+                    is_day,
+                },
+            });
 
             if is_day {
                 self.do_start_day(&state);
@@ -163,6 +172,12 @@ impl GameLoop {
             msg: ttp::reveal_roles(&self.info.lock().unwrap().players),
             reply_to: None,
         });
+        self.addr.do_send(GameMsg {
+            game_id: self.id,
+            event: GameEvent::EndGame {
+                winner,
+            },
+        });
 
         println!("game wait to stop");
         self.wait_stop();
@@ -206,6 +221,10 @@ impl GameLoop {
                     msg: ttp::after_death(uid),
                     reply_to: None,
                 });
+                self.addr.do_send(GameMsg {
+                    game_id: self.id,
+                    event: GameEvent::PlayerDied(uid.to_string()),
+                });
 
                 if let Some(&couple) = info_lock.cupid_couple.get(&uid) {
                     cupid_couple = Some((uid, couple));
@@ -221,6 +240,10 @@ impl GameLoop {
                         channel_id: state.cemetery,
                         msg: ttp::after_death(couple),
                         reply_to: None,
+                    });
+                    self.addr.do_send(GameMsg {
+                        game_id: self.id,
+                        event: GameEvent::PlayerDied(couple.to_string()),
                     });
                 }
             }
@@ -322,6 +345,10 @@ impl GameLoop {
                 msg: ttp::after_death(uid),
                 reply_to: None,
             });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::PlayerDied(uid.to_string()),
+            });
         }
 
         if let Some((died, follow)) = cupid_couple {
@@ -342,6 +369,10 @@ impl GameLoop {
                 msg: ttp::after_death(follow),
                 reply_to: None,
             });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::PlayerDied(follow.to_string()),
+            });
         }
 
         if let Some(uid) = info_lock.witch_reborn {
@@ -359,6 +390,10 @@ impl GameLoop {
                 channel_id: state.gameplay,
                 msg: ttp::reborned(uid),
                 reply_to: None,
+            });
+            self.addr.do_send(GameMsg {
+                game_id: self.id,
+                event: GameEvent::PlayerReborn(uid.to_string()),
             });
         }
     }
