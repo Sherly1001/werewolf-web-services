@@ -182,7 +182,10 @@ impl Handler<Join> for Game {
         self.addr.do_send(UpdatePers(msg.user_id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
-            msg: ttp::user_join(msg.user_id, self.info.lock().unwrap().users.len()),
+            msg: ttp::user_join(
+                msg.user_id,
+                self.info.lock().unwrap().users.len(),
+            ),
             reply_to: Some(msg.msg_id),
         });
         self.addr.do_send(BotMsg {
@@ -230,7 +233,10 @@ impl Handler<Leave> for Game {
         self.addr.do_send(UpdatePers(msg.user_id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
-            msg: ttp::user_leave(msg.user_id, self.info.lock().unwrap().users.len()),
+            msg: ttp::user_leave(
+                msg.user_id,
+                self.info.lock().unwrap().users.len(),
+            ),
             reply_to: Some(msg.msg_id),
         });
         self.addr.do_send(BotMsg {
@@ -423,7 +429,12 @@ impl Handler<Next> for Game {
             .channels
             .get(&GameChannel::GamePlay)
             .unwrap();
-        if !self.assert_cmd_in(Some(gameplay), msg.user_id, msg.msg_id, msg.channel_id) {
+        if !self.assert_cmd_in(
+            Some(gameplay),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) {
             return;
         }
 
@@ -461,7 +472,12 @@ impl Handler<Vote> for Game {
             .channels
             .get(&GameChannel::GamePlay)
             .unwrap();
-        if !self.assert_cmd_in(Some(gameplay), msg.user_id, msg.msg_id, msg.channel_id) {
+        if !self.assert_cmd_in(
+            Some(gameplay),
+            msg.user_id,
+            msg.msg_id,
+            msg.channel_id,
+        ) {
             return;
         }
 
@@ -574,7 +590,8 @@ impl Handler<Guard> for Game {
         }
         let target = target.unwrap();
 
-        if let Some((old, _)) = self.info.lock().unwrap().guard_yesterday_target {
+        if let Some((old, _)) = self.info.lock().unwrap().guard_yesterday_target
+        {
             if old == target {
                 return self.addr.do_send(BotMsg {
                     channel_id: msg.channel_id,
@@ -632,8 +649,8 @@ impl Handler<Seer> for Game {
 
         let mut info_lock = self.info.lock().unwrap();
         let player = info_lock.players.get_mut(&target).unwrap();
-        let is_wolf =
-            player.get_role_name() == roles::WEREWOLF || player.get_role_name() == roles::LYCAN;
+        let is_wolf = player.get_role_name() == roles::WEREWOLF
+            || player.get_role_name() == roles::LYCAN;
         if player.get_role_name() == roles::FOX {
             info_lock.night_pending_kill.insert(target);
         }
@@ -720,7 +737,11 @@ impl Handler<Ship> for Game {
 impl Handler<Reborn> for Game {
     type Result = ();
 
-    fn handle(&mut self, msg: Reborn, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: Reborn,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         if !assert_cmd(
             self,
             &[roles::WITCH],
@@ -926,7 +947,12 @@ fn assert_cmd(
     true
 }
 
-fn assert_use_skill(game: &Game, user_id: i64, msg_id: i64, msg_channel_id: i64) -> bool {
+fn assert_use_skill(
+    game: &Game,
+    user_id: i64,
+    msg_id: i64,
+    msg_channel_id: i64,
+) -> bool {
     let mut info_lock = game.info.lock().unwrap();
     let player = info_lock.players.get_mut(&user_id).unwrap();
 

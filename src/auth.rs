@@ -1,8 +1,10 @@
 use actix_web::{
-    dev::Payload, error::ErrorUnauthorized, http::header, web::Data, Error, FromRequest,
-    HttpRequest,
+    dev::Payload, error::ErrorUnauthorized, http::header, web::Data, Error,
+    FromRequest, HttpRequest,
 };
-use jsonwebtoken::{self as jwt, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    self as jwt, Algorithm, DecodingKey, EncodingKey, Header, Validation,
+};
 use qstring::QString;
 use serde::{Deserialize, Serialize};
 

@@ -46,7 +46,12 @@ pub fn add_channel(
         .get_result(conn)
 }
 
-pub fn add_user(conn: &PgConnection, id: i64, game_id: i64, user_id: i64) -> QueryResult<GameUser> {
+pub fn add_user(
+    conn: &PgConnection,
+    id: i64,
+    game_id: i64,
+    user_id: i64,
+) -> QueryResult<GameUser> {
     diesel::insert_into(game_users::table)
         .values(&GameUser {
             id,
@@ -56,7 +61,11 @@ pub fn add_user(conn: &PgConnection, id: i64, game_id: i64, user_id: i64) -> Que
         .get_result(conn)
 }
 
-pub fn remove_user(conn: &PgConnection, game_id: i64, user_id: i64) -> QueryResult<usize> {
+pub fn remove_user(
+    conn: &PgConnection,
+    game_id: i64,
+    user_id: i64,
+) -> QueryResult<usize> {
     let filter = game_users::table
         .filter(game_users::game_id.eq(game_id))
         .filter(game_users::user_id.eq(user_id));
@@ -64,7 +73,10 @@ pub fn remove_user(conn: &PgConnection, game_id: i64, user_id: i64) -> QueryResu
 }
 
 #[allow(dead_code)]
-pub fn get_channels(conn: &PgConnection, game_id: i64) -> QueryResult<Vec<Channel>> {
+pub fn get_channels(
+    conn: &PgConnection,
+    game_id: i64,
+) -> QueryResult<Vec<Channel>> {
     game_channels::table
         .filter(game_channels::game_id.eq(game_id))
         .inner_join(channels::table)
@@ -91,7 +103,10 @@ pub fn get_from_user(conn: &PgConnection, user_id: i64) -> QueryResult<Game> {
 }
 
 #[allow(dead_code)]
-pub fn get_from_channel(conn: &PgConnection, channel_id: i64) -> QueryResult<Game> {
+pub fn get_from_channel(
+    conn: &PgConnection,
+    channel_id: i64,
+) -> QueryResult<Game> {
     game_channels::table
         .filter(game_channels::channel_id.eq(channel_id))
         .inner_join(games::table)

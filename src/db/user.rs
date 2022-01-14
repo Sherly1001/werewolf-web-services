@@ -27,7 +27,8 @@ pub fn create(
     passwd: &str,
     avatar_url: Option<&str>,
 ) -> QueryResult<User> {
-    let hash_passwd = &scrypt_simple(passwd, &ScryptParams::new(14, 8, 1)).expect("hash error");
+    let hash_passwd = &scrypt_simple(passwd, &ScryptParams::new(14, 8, 1))
+        .expect("hash error");
 
     let new_user = NewUser {
         id,
@@ -46,7 +47,11 @@ pub fn create(
     Ok(user)
 }
 
-pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Result<User, &'static str> {
+pub fn login(
+    conn: &PgConnection,
+    username: &str,
+    passwd: &str,
+) -> Result<User, &'static str> {
     let user = users::table
         .filter(users::username.eq(username))
         .get_result::<User>(conn)
@@ -72,7 +77,11 @@ pub fn get_info(conn: &PgConnection, user_id: i64) -> QueryResult<User> {
     users::table.find(user_id).get_result::<User>(conn)
 }
 
-pub fn update_win(conn: &PgConnection, user_id: i64, is_winner: bool) -> QueryResult<usize> {
+pub fn update_win(
+    conn: &PgConnection,
+    user_id: i64,
+    is_winner: bool,
+) -> QueryResult<usize> {
     let mut user = users::table.find(user_id).get_result::<User>(conn)?;
     let user_filter = users::table.find(user_id);
 

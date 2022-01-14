@@ -301,7 +301,9 @@ impl GameLoop {
 
         for (_uid, player) in info_lock.players.iter_mut() {
             player.on_action(&self.bot_prefix);
-            if [roles::GUARD, roles::SEER, roles::WITCH].contains(&player.get_role_name()) {
+            if [roles::GUARD, roles::SEER, roles::WITCH]
+                .contains(&player.get_role_name())
+            {
                 let &mut personal_channel = player.get_channelid();
                 self.addr.do_send(BotMsg {
                     channel_id: personal_channel,
@@ -486,7 +488,9 @@ impl GameLoop {
             .iter()
             .filter(|uid| {
                 let role = info_lock.players.get(uid).unwrap().get_role_name();
-                role == roles::WEREWOLF || role == roles::SUPERWOLF || role == roles::BETRAYER
+                role == roles::WEREWOLF
+                    || role == roles::SUPERWOLF
+                    || role == roles::BETRAYER
             })
             .map(|&uid| uid)
             .collect::<Vec<i64>>();
@@ -509,12 +513,12 @@ impl GameLoop {
         }
 
         if num_alive == 2
-            && roles_list
-                .iter()
-                .any(|&role| role == roles::WEREWOLF || role == roles::SUPERWOLF)
-            && roles_list
-                .iter()
-                .any(|&role| role == roles::WEREWOLF || role == roles::SUPERWOLF)
+            && roles_list.iter().any(|&role| {
+                role == roles::WEREWOLF || role == roles::SUPERWOLF
+            })
+            && roles_list.iter().any(|&role| {
+                role == roles::WEREWOLF || role == roles::SUPERWOLF
+            })
             && alive
                 .iter()
                 .all(|uid| info_lock.cupid_couple.contains_key(uid))
@@ -541,10 +545,19 @@ impl GameLoop {
         Some((roles::VILLAGER.to_string(), alive))
     }
 
-    fn set_pers(&self, user_id: i64, channel_id: i64, readable: bool, sendable: bool) {
+    fn set_pers(
+        &self,
+        user_id: i64,
+        channel_id: i64,
+        readable: bool,
+        sendable: bool,
+    ) {
         let conn = get_conn(self.db_pool.clone());
         let id = self.id_gen.lock().unwrap().real_time_generate();
-        db::channel::set_pers(&conn, id, user_id, channel_id, readable, sendable).ok();
+        db::channel::set_pers(
+            &conn, id, user_id, channel_id, readable, sendable,
+        )
+        .ok();
         self.addr.do_send(UpdatePers(user_id));
     }
 

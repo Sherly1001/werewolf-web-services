@@ -1,4 +1,6 @@
-use actix_web::error::{BlockingError, ErrorUnauthorized, ErrorUnprocessableEntity};
+use actix_web::error::{
+    BlockingError, ErrorUnauthorized, ErrorUnprocessableEntity,
+};
 use actix_web::{get, post, web};
 use serde::Deserialize;
 

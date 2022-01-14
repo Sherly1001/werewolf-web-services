@@ -21,10 +21,13 @@ pub fn send_msg(
 ) -> Result<ChatLine, String> {
     let conn = get_conn(srv.db_pool.clone());
 
-    let pers = db::channel::get_pers(&conn, user_id, channel_id).map_err(|err| err.to_string())?;
+    let pers = db::channel::get_pers(&conn, user_id, channel_id)
+        .map_err(|err| err.to_string())?;
 
     if !pers.readable || !pers.sendable {
-        return Err("don't have permission to send message to this channel".to_string());
+        return Err(
+            "don't have permission to send message to this channel".to_string()
+        );
     }
 
     let id = srv
@@ -71,7 +74,8 @@ pub fn get_pers(
     let conn = get_conn(srv.db_pool.clone());
 
     if let None = channel_id {
-        return db::channel::get_all_pers(&conn, user_id).map_err(|err| err.to_string());
+        return db::channel::get_all_pers(&conn, user_id)
+            .map_err(|err| err.to_string());
     }
 
     let channel_id = channel_id.unwrap();

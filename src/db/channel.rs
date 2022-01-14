@@ -8,7 +8,9 @@ use crate::models::channel::{
     UserChannelPermissionDisplay,
 };
 use crate::models::user::User;
-use crate::schema::{channels, chat_lines, user_channel_permissions as ucp, users};
+use crate::schema::{
+    channels, chat_lines, user_channel_permissions as ucp, users,
+};
 
 pub fn get_pers(
     conn: &PgConnection,
@@ -84,7 +86,11 @@ pub fn set_pers(
 }
 
 #[allow(dead_code)]
-pub fn create_channel(conn: &PgConnection, id: i64, channel_name: String) -> QueryResult<Channel> {
+pub fn create_channel(
+    conn: &PgConnection,
+    id: i64,
+    channel_name: String,
+) -> QueryResult<Channel> {
     diesel::insert_into(channels::table)
         .values(&Channel { id, channel_name })
         .get_result(conn)
@@ -129,7 +135,10 @@ pub fn get_messages(
         .get_results(conn)
 }
 
-pub fn get_users(conn: &PgConnection, channel_id: i64) -> QueryResult<Vec<User>> {
+pub fn get_users(
+    conn: &PgConnection,
+    channel_id: i64,
+) -> QueryResult<Vec<User>> {
     ucp::table
         .filter(ucp::channel_id.eq(channel_id))
         .filter(ucp::readable.eq(true))

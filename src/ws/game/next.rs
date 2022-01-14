@@ -37,7 +37,10 @@ impl NextFut {
 impl Future for NextFut {
     type Output = ();
 
-    fn poll(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
+    fn poll(
+        self: Pin<&mut Self>,
+        cx: &mut task::Context<'_>,
+    ) -> Poll<Self::Output> {
         if *self.next.lock().unwrap() {
             *self.next.lock().unwrap() = false;
             *self.waker.lock().unwrap() = None;

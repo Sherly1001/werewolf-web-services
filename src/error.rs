@@ -41,7 +41,11 @@ pub struct ResErrWrap;
 
 impl<S, B> Transform<S> for ResErrWrap
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<
+        Request = ServiceRequest,
+        Response = ServiceResponse<B>,
+        Error = Error,
+    >,
     S::Future: 'static,
     B: 'static,
 {
@@ -63,16 +67,24 @@ pub struct ResErrMiddleware<S> {
 
 impl<S, B> Service for ResErrMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<
+        Request = ServiceRequest,
+        Response = ServiceResponse<B>,
+        Error = Error,
+    >,
     S::Future: 'static,
     B: 'static,
 {
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future =
+        Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(
+        &mut self,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)
     }
 

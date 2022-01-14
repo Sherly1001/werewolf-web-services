@@ -2,10 +2,13 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use actix::{
-    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, ContextFutureSpawner, Handler,
-    Message, Recipient, StreamHandler, WrapFuture,
+    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context,
+    ContextFutureSpawner, Handler, Message, Recipient, StreamHandler,
+    WrapFuture,
 };
-use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext};
+use actix_web_actors::ws::{
+    Message as WsMessage, ProtocolError, WebsocketContext,
+};
 
 use crate::config::{AppState, DbPool};
 
@@ -72,10 +75,13 @@ impl ChatServer {
     pub fn broadcast(&self, cmd: &Cmd, except: i64) {
         let uids = match &cmd {
             Cmd::BroadCastMsg { channel_id, .. } => {
-                services::get_channel_users(self, channel_id.parse().unwrap_or(-1))
-                    .iter()
-                    .map(|u| u.id)
-                    .collect()
+                services::get_channel_users(
+                    self,
+                    channel_id.parse().unwrap_or(-1),
+                )
+                .iter()
+                .map(|u| u.id)
+                .collect()
             }
             _ => self.users.keys().cloned().collect::<Vec<i64>>(),
         };
@@ -132,9 +138,16 @@ impl ChatServer {
         }
     }
 
-    pub fn bot_send(&self, channel_id: i64, message: String, reply_to: Option<i64>) {
+    pub fn bot_send(
+        &self,
+        channel_id: i64,
+        message: String,
+        reply_to: Option<i64>,
+    ) {
         let bot_id = self.app_state.bot_id;
-        let chat = match services::send_msg(self, bot_id, channel_id, message, reply_to) {
+        let chat = match services::send_msg(
+            self, bot_id, channel_id, message, reply_to,
+        ) {
             Ok(c) => c,
             Err(e) => return eprintln!("bot_send: {}", e),
         };
@@ -149,7 +162,8 @@ impl ChatServer {
     }
 
     pub fn update_pers(&self, user_id: i64) {
-        let pers = services::get_pers(self, user_id, None).unwrap_or(HashMap::new());
+        let pers =
+            services::get_pers(self, user_id, None).unwrap_or(HashMap::new());
         self.send_to_user(&Cmd::GetPersRes(pers), user_id);
     }
 
@@ -226,7 +240,11 @@ impl Handler<Connect> for ChatServer {
 impl Handler<Disconnect> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: Disconnect,
+        _: &mut Self::Context,
+    ) -> Self::Result {
         self.clients.remove(&msg.ws_id);
         if let Some(ws) = self.users.get_mut(&msg.user_id) {
             ws.retain(|&id| id != msg.ws_id);
@@ -241,7 +259,11 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<ClientMsg> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: ClientMsg, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: ClientMsg,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
         msg_handler(self, ctx, msg.ws_id, msg.user_id, msg.msg);
     }
 }
@@ -257,7 +279,11 @@ impl Handler<BotMsg> for ChatServer {
 impl Handler<GameMsg> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: GameMsg, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: GameMsg,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         let uids = services::get_game_users(self, msg.game_id)
             .iter()
             .map(|u| u.id)
@@ -289,7 +315,11 @@ impl Handler<GameMsg> for ChatServer {
 impl Handler<StartGame> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, _msg: StartGame, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        _msg: StartGame,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         self.current_game = None;
     }
 }
@@ -306,7 +336,11 @@ impl Handler<StopGame> for ChatServer {
 impl Handler<UpdatePers> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: UpdatePers, _: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: UpdatePers,
+        _: &mut Self::Context,
+    ) -> Self::Result {
         self.update_pers(msg.0);
     }
 }
@@ -386,7 +420,11 @@ impl Handler<Msg> for WsClient {
 }
 
 impl StreamHandler<Result<WsMessage, ProtocolError>> for WsClient {
-    fn handle(&mut self, item: Result<WsMessage, ProtocolError>, ctx: &mut Self::Context) {
+    fn handle(
+        &mut self,
+        item: Result<WsMessage, ProtocolError>,
+        ctx: &mut Self::Context,
+    ) {
         let msg = match item {
             Ok(msg) => msg,
             Err(_) => {

@@ -31,11 +31,18 @@ pub fn cmd_handler(
             message,
             reply_to,
         } => {
-            let channel_id = channel_id.parse::<i64>().map_err(|err| err.to_string())?;
+            let channel_id =
+                channel_id.parse::<i64>().map_err(|err| err.to_string())?;
             let reply_to = reply_to
                 .map(|id| id.parse::<i64>().map_err(|err| err.to_string()))
                 .transpose()?;
-            let chat = services::send_msg(srv, user_id, channel_id, message.clone(), reply_to)?;
+            let chat = services::send_msg(
+                srv,
+                user_id,
+                channel_id,
+                message.clone(),
+                reply_to,
+            )?;
             let bc = Cmd::BroadCastMsg {
                 user_id: user_id.to_string(),
                 channel_id: channel_id.to_string(),
@@ -53,9 +60,11 @@ pub fn cmd_handler(
             srv.send_to(&rs, ws_id);
 
             if message.starts_with(srv.app_state.bot_prefix.as_str()) {
-                game_commands(srv, ctx, ws_id, user_id, channel_id, message, chat.id)
-                    .map_err(|err| srv.bot_send(channel_id, err, Some(chat.id)))
-                    .ok();
+                game_commands(
+                    srv, ctx, ws_id, user_id, channel_id, message, chat.id,
+                )
+                .map_err(|err| srv.bot_send(channel_id, err, Some(chat.id)))
+                .ok();
             }
         }
         Cmd::GetMsg {
@@ -375,7 +384,10 @@ fn game_commands(
     Ok(())
 }
 
-fn must_in_channel(channel_id: i64, current_channel_id: i64) -> Result<(), String> {
+fn must_in_channel(
+    channel_id: i64,
+    current_channel_id: i64,
+) -> Result<(), String> {
     if channel_id == current_channel_id {
         Ok(())
     } else {

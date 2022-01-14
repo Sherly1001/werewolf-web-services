@@ -2,7 +2,9 @@
 extern crate diesel;
 
 use actix::{Actor, Addr};
-use actix_web::{error::ErrorBadRequest, middleware, web, App, HttpRequest, HttpServer};
+use actix_web::{
+    error::ErrorBadRequest, middleware, web, App, HttpRequest, HttpServer,
+};
 
 mod auth;
 mod config;
@@ -45,7 +47,8 @@ pub async fn run() -> std::io::Result<()> {
     let app_state = config.app_state.clone();
     let db_pool = config.db_pool.clone();
 
-    let chat_server = ChatServer::new(app_state.clone(), db_pool.clone()).start();
+    let chat_server =
+        ChatServer::new(app_state.clone(), db_pool.clone()).start();
 
     HttpServer::new(move || {
         let cors = actix_cors::Cors::permissive();

@@ -47,7 +47,8 @@ pub fn rand_roles(
     uids: &Vec<&i64>,
     addr: Addr<ChatServer>,
 ) -> Result<HashMap<i64, Box<dyn Player>>, String> {
-    let json = read_to_string("./jsons/role-config.json").map_err(|err| err.to_string())?;
+    let json = read_to_string("./jsons/role-config.json")
+        .map_err(|err| err.to_string())?;
     let config = serde_json::from_str::<RoleConfig>(&json).unwrap();
 
     let roles = config.get(&uids.len()).unwrap();
@@ -103,7 +104,11 @@ pub fn rand_roles(
     Ok(rs)
 }
 
-fn new_role(role: &str, id: i64, addr: Addr<ChatServer>) -> Result<Box<dyn Player>, String> {
+fn new_role(
+    role: &str,
+    id: i64,
+    addr: Addr<ChatServer>,
+) -> Result<Box<dyn Player>, String> {
     match role {
         roles::VILLAGER => Ok(Box::new(villager::Villager::new(id, addr))),
         roles::WEREWOLF => Ok(Box::new(werewolf::Werewolf::new(id, addr))),
