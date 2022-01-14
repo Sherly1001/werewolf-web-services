@@ -40,31 +40,46 @@ impl std::ops::Deref for GameLoop {
 
 impl GameLoop {
     pub async fn new(game: Game) {
-        let game = Self {
-            game,
-        };
+        let game = Self { game };
         game.run().await;
     }
 
     pub async fn run(&self) {
         let next = self.info.lock().unwrap().next_flag.clone();
 
-        let gameplay = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::GamePlay).unwrap();
-        let werewolf = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::WereWolf).unwrap();
-        let cemetery = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::Cemetery).unwrap();
+        let gameplay = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
+        let werewolf = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::WereWolf)
+            .unwrap();
+        let cemetery = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::Cemetery)
+            .unwrap();
 
         let bot_prefix = self.bot_prefix.clone();
 
         let mut info_lock = self.info.lock().unwrap();
         let (alive, _died) = info_lock.get_alives();
-        let wolf_list = alive.iter().filter(|uid| {
-            let role = info_lock.players.get(uid).unwrap().get_role_name();
-            role == roles::WEREWOLF || role == roles::SUPERWOLF
-        })
-        .collect();
+        let wolf_list = alive
+            .iter()
+            .filter(|uid| {
+                let role = info_lock.players.get(uid).unwrap().get_role_name();
+                role == roles::WEREWOLF || role == roles::SUPERWOLF
+            })
+            .collect();
         for (&uid, player) in info_lock.players.iter_mut() {
             player.on_start_game(&bot_prefix);
             let role = player.get_role_name();
@@ -120,10 +135,7 @@ impl GameLoop {
             });
             self.addr.do_send(GameMsg {
                 game_id: self.id,
-                event: GameEvent::NewPhase {
-                    num_day,
-                    is_day,
-                },
+                event: GameEvent::NewPhase { num_day, is_day },
             });
 
             if is_day {
@@ -147,7 +159,9 @@ impl GameLoop {
 
             println!("stop");
 
-            if !is_day { self.info.lock().unwrap().num_day += 1; }
+            if !is_day {
+                self.info.lock().unwrap().num_day += 1;
+            }
             self.info.lock().unwrap().is_day = !is_day;
 
             if let Some(role) = self.get_wining_role() {
@@ -176,9 +190,7 @@ impl GameLoop {
         });
         self.addr.do_send(GameMsg {
             game_id: self.id,
-            event: GameEvent::EndGame {
-                winner,
-            },
+            event: GameEvent::EndGame { winner },
         });
 
         println!("game wait to stop");
@@ -213,7 +225,8 @@ impl GameLoop {
             let player = info_lock.players.get_mut(&uid).unwrap();
             if player.get_killed(false) {
                 if player.get_role_name() == roles::WEREWOLF
-                    || player.get_role_name() == roles::SUPERWOLF {
+                    || player.get_role_name() == roles::SUPERWOLF
+                {
                     self.set_pers(uid, state.werewolf, false, false);
                 }
                 self.set_pers(uid, state.gameplay, true, false);
@@ -233,7 +246,8 @@ impl GameLoop {
                     let player = info_lock.players.get_mut(&couple).unwrap();
                     player.get_killed(true);
                     if player.get_role_name() == roles::WEREWOLF
-                        || player.get_role_name() == roles::SUPERWOLF {
+                        || player.get_role_name() == roles::SUPERWOLF
+                    {
                         self.set_pers(couple, state.werewolf, false, false);
                     }
                     self.set_pers(couple, state.gameplay, true, false);
@@ -287,8 +301,7 @@ impl GameLoop {
 
         for (_uid, player) in info_lock.players.iter_mut() {
             player.on_action(&self.bot_prefix);
-            if [roles::GUARD, roles::SEER, roles::WITCH]
-                .contains(&player.get_role_name()) {
+            if [roles::GUARD, roles::SEER, roles::WITCH].contains(&player.get_role_name()) {
                 let &mut personal_channel = player.get_channelid();
                 self.addr.do_send(BotMsg {
                     channel_id: personal_channel,
@@ -341,7 +354,9 @@ impl GameLoop {
 
             self.set_pers(uid, state.gameplay, true, false);
             self.set_pers(uid, state.cemetery, true, true);
-            if is_wolf { self.set_pers(uid, state.werewolf, false, false); }
+            if is_wolf {
+                self.set_pers(uid, state.werewolf, false, false);
+            }
             self.addr.do_send(BotMsg {
                 channel_id: state.cemetery,
                 msg: ttp::after_death(uid),
@@ -360,7 +375,9 @@ impl GameLoop {
 
             self.set_pers(follow, state.gameplay, true, false);
             self.set_pers(follow, state.cemetery, true, true);
-            if is_wolf { self.set_pers(follow, state.werewolf, false, false); }
+            if is_wolf {
+                self.set_pers(follow, state.werewolf, false, false);
+            }
             self.addr.do_send(BotMsg {
                 channel_id: state.gameplay,
                 msg: ttp::couple_died(died, follow, false),
@@ -386,7 +403,9 @@ impl GameLoop {
 
             self.set_pers(uid, state.cemetery, false, false);
             self.set_pers(uid, state.gameplay, true, false);
-            if is_wolf { self.set_pers(uid, state.werewolf, true, true); }
+            if is_wolf {
+                self.set_pers(uid, state.werewolf, true, true);
+            }
 
             self.addr.do_send(BotMsg {
                 channel_id: state.gameplay,
@@ -422,8 +441,11 @@ impl GameLoop {
             for count in (1..timecount + 1).rev() {
                 {
                     let lock = info.lock().unwrap();
-                    if lock.is_ended || lock.is_stopped ||
-                        lock.is_day != is_day || lock.num_day != num_day {
+                    if lock.is_ended
+                        || lock.is_stopped
+                        || lock.is_day != is_day
+                        || lock.num_day != num_day
+                    {
                         return;
                     }
                 }
@@ -460,20 +482,25 @@ impl GameLoop {
         let info_lock = self.info.lock().unwrap();
         let (alive, _) = info_lock.get_alives();
         let num_alive = alive.len();
-        let wolf_list = alive.iter().filter(|uid| {
-            let role = info_lock.players.get(uid).unwrap()
-                .get_role_name();
-            role == roles::WEREWOLF
-                || role == roles::SUPERWOLF
-                || role == roles::BETRAYER
-        }).map(|&uid| uid).collect::<Vec<i64>>();
-        let fox_list = alive.iter().filter(|uid| {
-            let role = info_lock.players.get(uid).unwrap()
-                .get_role_name();
-            role == roles::FOX
-        }).map(|&uid| uid).collect::<Vec<i64>>();
+        let wolf_list = alive
+            .iter()
+            .filter(|uid| {
+                let role = info_lock.players.get(uid).unwrap().get_role_name();
+                role == roles::WEREWOLF || role == roles::SUPERWOLF || role == roles::BETRAYER
+            })
+            .map(|&uid| uid)
+            .collect::<Vec<i64>>();
+        let fox_list = alive
+            .iter()
+            .filter(|uid| {
+                let role = info_lock.players.get(uid).unwrap().get_role_name();
+                role == roles::FOX
+            })
+            .map(|&uid| uid)
+            .collect::<Vec<i64>>();
         let num_wolf = wolf_list.len();
-        let roles_list = alive.iter()
+        let roles_list = alive
+            .iter()
             .map(|uid| info_lock.players.get(uid).unwrap().get_role_name())
             .collect::<Vec<&str>>();
 
@@ -482,17 +509,23 @@ impl GameLoop {
         }
 
         if num_alive == 2
-            && roles_list.iter().any(|&role|
-                role == roles::WEREWOLF || role == roles::SUPERWOLF
-            )
-            && roles_list.iter().any(|&role|
-                role == roles::WEREWOLF || role == roles::SUPERWOLF
-            )
-            && alive.iter().all(|uid| info_lock.cupid_couple.contains_key(uid)) {
-            return Some((String::from("Couple: ") + &alive.iter()
-                .map(|uid| format!("<@{}>", uid))
-                .collect::<Vec<String>>()
-                .join(", "),
+            && roles_list
+                .iter()
+                .any(|&role| role == roles::WEREWOLF || role == roles::SUPERWOLF)
+            && roles_list
+                .iter()
+                .any(|&role| role == roles::WEREWOLF || role == roles::SUPERWOLF)
+            && alive
+                .iter()
+                .all(|uid| info_lock.cupid_couple.contains_key(uid))
+        {
+            return Some((
+                String::from("Couple: ")
+                    + &alive
+                        .iter()
+                        .map(|uid| format!("<@{}>", uid))
+                        .collect::<Vec<String>>()
+                        .join(", "),
                 alive,
             ));
         }
@@ -508,16 +541,10 @@ impl GameLoop {
         Some((roles::VILLAGER.to_string(), alive))
     }
 
-    fn set_pers(&self,
-        user_id: i64,
-        channel_id: i64,
-        readable: bool,
-        sendable: bool,
-    ) {
+    fn set_pers(&self, user_id: i64, channel_id: i64, readable: bool, sendable: bool) {
         let conn = get_conn(self.db_pool.clone());
         let id = self.id_gen.lock().unwrap().real_time_generate();
-        db::channel::set_pers(&conn, id, user_id,
-            channel_id, readable, sendable).ok();
+        db::channel::set_pers(&conn, id, user_id, channel_id, readable, sendable).ok();
         self.addr.do_send(UpdatePers(user_id));
     }
 

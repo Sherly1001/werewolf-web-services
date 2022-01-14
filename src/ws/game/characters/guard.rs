@@ -1,9 +1,14 @@
 use actix::Addr;
 
-use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
+use crate::ws::{
+    game::{cmds::BotMsg, text_templates as ttp},
+    ChatServer,
+};
 
-use super::{player::{PlayerStatus, Player}, roles};
-
+use super::{
+    player::{Player, PlayerStatus},
+    roles,
+};
 
 pub struct Guard {
     pub user_id: i64,

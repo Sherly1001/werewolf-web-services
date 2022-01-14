@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use diesel::{Insertable, Queryable};
+use serde::{Deserialize, Serialize};
 
 use crate::schema::{channels, chat_lines, user_channel_permissions};
 

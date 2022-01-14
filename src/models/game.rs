@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::schema::{games, game_users, game_channels};
+use crate::schema::{game_channels, game_users, games};
 
 #[derive(Serialize, Deserialize, Queryable, Insertable, Debug)]
 pub struct Game {

@@ -1,15 +1,21 @@
 use actix::{Actor, Addr, Context};
-use diesel::{r2d2::{PooledConnection, ConnectionManager}, PgConnection};
+use diesel::{
+    r2d2::{ConnectionManager, PooledConnection},
+    PgConnection,
+};
 use snowflake::SnowflakeIdGenerator;
 
-use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
+};
 
-use crate::{config::DbPool, db};
 use crate::ws::ChatServer;
+use crate::{config::DbPool, db};
 
+use super::characters::{self, player::Player, roles};
 use super::game_loop::GameLoop;
 use super::next::NextFut;
-use super::characters::{player::Player, self, roles};
 
 pub struct GameInfo {
     pub channels: HashMap<GameChannel, i64>,
@@ -37,10 +43,7 @@ pub struct GameInfo {
 }
 
 impl GameInfo {
-    pub fn new(
-        channels: HashMap<GameChannel, i64>,
-        users: HashSet<i64>,
-    ) -> Self {
+    pub fn new(channels: HashMap<GameChannel, i64>, users: HashSet<i64>) -> Self {
         Self {
             channels,
             users,
@@ -125,10 +128,7 @@ impl Game {
         let conn = get_conn(db_pool.clone());
         db::game::create(&conn, id).unwrap();
 
-        let info = Arc::new(Mutex::new(GameInfo::new(
-            HashMap::new(),
-            HashSet::new(),
-        )));
+        let info = Arc::new(Mutex::new(GameInfo::new(HashMap::new(), HashSet::new())));
 
         let mut s = Self {
             id,
@@ -140,9 +140,12 @@ impl Game {
             info,
         };
 
-        s.add_channel(GameChannel::GamePlay, "gameplay".to_string()).unwrap();
-        s.add_channel(GameChannel::WereWolf, "werewolf".to_string()).unwrap();
-        s.add_channel(GameChannel::Cemetery, "cemetery".to_string()).unwrap();
+        s.add_channel(GameChannel::GamePlay, "gameplay".to_string())
+            .unwrap();
+        s.add_channel(GameChannel::WereWolf, "werewolf".to_string())
+            .unwrap();
+        s.add_channel(GameChannel::Cemetery, "cemetery".to_string())
+            .unwrap();
 
         s
     }
@@ -160,22 +163,17 @@ impl Game {
         let users = db::game::get_users(&conn, id).ok()?;
 
         let users = users.iter().map(|u| u.id).collect();
-        let channels = channels.iter()
-            .map(|cl| {
-                match cl.channel_name.as_str() {
-                    "gameplay" => Some((GameChannel::GamePlay, cl.id)),
-                    "werewolf" => Some((GameChannel::WereWolf, cl.id)),
-                    "cemetery" => Some((GameChannel::Cemetery, cl.id)),
-                    _ => return None,
-                }
+        let channels = channels
+            .iter()
+            .map(|cl| match cl.channel_name.as_str() {
+                "gameplay" => Some((GameChannel::GamePlay, cl.id)),
+                "werewolf" => Some((GameChannel::WereWolf, cl.id)),
+                "cemetery" => Some((GameChannel::Cemetery, cl.id)),
+                _ => return None,
             })
             .collect::<Option<HashMap<GameChannel, i64>>>()?;
 
-
-        let info = Arc::new(Mutex::new(GameInfo::new(
-            channels,
-            users,
-        )));
+        let info = Arc::new(Mutex::new(GameInfo::new(channels, users)));
 
         Some(Self {
             id,
@@ -190,7 +188,9 @@ impl Game {
 
     pub fn add_user(&mut self, user_id: i64) -> Result<(), String> {
         let mut info = self.info.lock().unwrap();
-        let &gameplay = info.channels.get(&GameChannel::GamePlay)
+        let &gameplay = info
+            .channels
+            .get(&GameChannel::GamePlay)
             .ok_or("can't get gameplay".to_string())?;
         let new_id1;
         let new_id2;
@@ -203,8 +203,7 @@ impl Game {
 
         let conn = get_conn(self.db_pool.clone());
         db::game::add_user(&conn, new_id1, self.id, user_id).unwrap();
-        db::channel::set_pers(&conn, new_id2, user_id, gameplay, true, true)
-            .unwrap();
+        db::channel::set_pers(&conn, new_id2, user_id, gameplay, true, true).unwrap();
 
         info.users.insert(user_id);
         Ok(())
@@ -214,15 +213,19 @@ impl Game {
         let mut info = self.info.lock().unwrap();
 
         let conn = get_conn(self.db_pool.clone());
-        db::game::remove_user(&conn, self.id, user_id)
-            .map_err(|err| err.to_string())?;
+        db::game::remove_user(&conn, self.id, user_id).map_err(|err| err.to_string())?;
 
         let mut id_lock = self.id_gen.lock().unwrap();
         for (_, &channel_id) in info.channels.iter() {
             db::channel::set_pers(
-                &conn, id_lock.real_time_generate(),
-                user_id, channel_id, false, false,
-            ).map_err(|err| err.to_string())?;
+                &conn,
+                id_lock.real_time_generate(),
+                user_id,
+                channel_id,
+                false,
+                false,
+            )
+            .map_err(|err| err.to_string())?;
         }
 
         info.users.remove(&user_id);
@@ -251,22 +254,22 @@ impl Game {
 
         db::game::add_channel(&conn, new_id1, self.id, channel_id, channel_name)
             .map_err(|err| err.to_string())?;
-        self.info.lock().unwrap().channels.insert(channel, channel_id);
+        self.info
+            .lock()
+            .unwrap()
+            .channels
+            .insert(channel, channel_id);
         db::channel::set_pers(&conn, new_id2, self.bot_id, channel_id, true, true)
             .map_err(|err| err.to_string())?;
 
         Ok(())
     }
 
-    pub fn start(
-        &mut self,
-    ) -> Result<HashMap<String, usize>, String> {
+    pub fn start(&mut self) -> Result<HashMap<String, usize>, String> {
         let mut info = self.info.lock().unwrap();
 
-        let mut players = characters::rand_roles(
-            &info.users.iter().collect::<Vec<&i64>>(),
-            self.addr.clone(),
-        )?;
+        let mut players =
+            characters::rand_roles(&info.users.iter().collect::<Vec<&i64>>(), self.addr.clone())?;
 
         let conn = get_conn(self.db_pool.clone());
         let mut id_lock = self.id_gen.lock().unwrap();
@@ -281,28 +284,46 @@ impl Game {
             let new_id3 = id_lock.real_time_generate();
             let channel_id = id_lock.real_time_generate();
 
-            db::game::add_channel(&conn, new_id1, self.id,
-                channel_id, "personal channel".to_string())
-                .map_err(|err| err.to_string())?;
-            db::channel::set_pers(&conn, new_id2, *player.get_playerid(),
-                channel_id, true, true)
-                .map_err(|err| err.to_string())?;
-            db::channel::set_pers(&conn, new_id3, self.bot_id,
-                channel_id, true, true)
+            db::game::add_channel(
+                &conn,
+                new_id1,
+                self.id,
+                channel_id,
+                "personal channel".to_string(),
+            )
+            .map_err(|err| err.to_string())?;
+            db::channel::set_pers(
+                &conn,
+                new_id2,
+                *player.get_playerid(),
+                channel_id,
+                true,
+                true,
+            )
+            .map_err(|err| err.to_string())?;
+            db::channel::set_pers(&conn, new_id3, self.bot_id, channel_id, true, true)
                 .map_err(|err| err.to_string())?;
 
-            info.channels.insert(
-                GameChannel::Personal(*player.get_playerid()), channel_id);
+            info.channels
+                .insert(GameChannel::Personal(*player.get_playerid()), channel_id);
             *player.get_channelid() = channel_id;
 
             if role_name == roles::WEREWOLF || role_name == roles::SUPERWOLF {
                 let new_id1 = id_lock.real_time_generate();
-                let werewolf = info.channels.get(&GameChannel::WereWolf)
+                let werewolf = info
+                    .channels
+                    .get(&GameChannel::WereWolf)
                     .ok_or("not found werewolf channel".to_string())?;
 
-                db::channel::set_pers(&conn, new_id1, *player.get_playerid(),
-                    *werewolf, true, true)
-                    .map_err(|err| err.to_string())?;
+                db::channel::set_pers(
+                    &conn,
+                    new_id1,
+                    *player.get_playerid(),
+                    *werewolf,
+                    true,
+                    true,
+                )
+                .map_err(|err| err.to_string())?;
             }
         }
 
@@ -318,10 +339,11 @@ impl Game {
     pub fn stop(&mut self) -> Result<(), String> {
         let mut info = self.info.lock().unwrap();
 
-        if info.is_stopped { return Ok(()) }
+        if info.is_stopped {
+            return Ok(());
+        }
         let conn = get_conn(self.db_pool.clone());
-        db::game::delete(&conn, self.id)
-            .map_err(|err| err.to_string())?;
+        db::game::delete(&conn, self.id).map_err(|err| err.to_string())?;
         info.is_stopped = true;
         Ok(())
     }
@@ -333,7 +355,9 @@ impl Game {
         msg_id: i64,
         msg_channel_id: i64,
     ) -> bool {
-        if !self.must_in_game(user_id, msg_id) { return false }
+        if !self.must_in_game(user_id, msg_id) {
+            return false;
+        }
         use super::cmds::BotMsg;
         use super::text_templates as ttp;
 
@@ -360,8 +384,13 @@ impl Game {
 
         let channel_id = match channel_id {
             Some(id) => id,
-            None => *self.info.lock().unwrap()
-                .players.get_mut(&user_id).unwrap()
+            None => *self
+                .info
+                .lock()
+                .unwrap()
+                .players
+                .get_mut(&user_id)
+                .unwrap()
                 .get_channelid(),
         };
 
@@ -378,8 +407,13 @@ impl Game {
     }
 
     pub fn assert_role(&self, role: &'static str, user_id: i64) -> bool {
-        role == self.info.lock().unwrap()
-            .players.get(&user_id).unwrap()
+        role == self
+            .info
+            .lock()
+            .unwrap()
+            .players
+            .get(&user_id)
+            .unwrap()
             .get_role_name()
     }
 }

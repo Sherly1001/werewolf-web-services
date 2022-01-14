@@ -1,9 +1,8 @@
-use std::time::{Duration, Instant};
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use actix::{
-    Actor, ActorContext, ActorFuture, Addr, AsyncContext,
-    Context, ContextFutureSpawner, Handler,
+    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, ContextFutureSpawner, Handler,
     Message, Recipient, StreamHandler, WrapFuture,
 };
 use actix_web_actors::ws::{Message as WsMessage, ProtocolError, WebsocketContext};
@@ -14,9 +13,12 @@ use super::cmd_parser::GameEvent;
 use super::game::cmds::UpdatePers;
 use super::services::get_info;
 use super::{
-    message_handler::msg_handler,
     cmd_parser::Cmd,
-    game::{Game, cmds::{BotMsg, GameMsg, StartGame, StopGame}},
+    game::{
+        cmds::{BotMsg, GameMsg, StartGame, StopGame},
+        Game,
+    },
+    message_handler::msg_handler,
     services,
 };
 
@@ -75,7 +77,7 @@ impl ChatServer {
                     .map(|u| u.id)
                     .collect()
             }
-            _ => self.users.keys().cloned().collect::<Vec<i64>>()
+            _ => self.users.keys().cloned().collect::<Vec<i64>>(),
         };
         let allow_wsi = uids
             .iter()
@@ -132,10 +134,9 @@ impl ChatServer {
 
     pub fn bot_send(&self, channel_id: i64, message: String, reply_to: Option<i64>) {
         let bot_id = self.app_state.bot_id;
-        let chat = match services::send_msg(
-            self, bot_id, channel_id, message, reply_to) {
+        let chat = match services::send_msg(self, bot_id, channel_id, message, reply_to) {
             Ok(c) => c,
-            Err(e) => return eprintln!("bot_send: {}", e)
+            Err(e) => return eprintln!("bot_send: {}", e),
         };
         let bc = Cmd::BroadCastMsg {
             user_id: bot_id.to_string(),
@@ -153,20 +154,22 @@ impl ChatServer {
     }
 
     pub fn new_game(&mut self, ctx: &mut Context<Self>) -> Addr<Game> {
-        let game_id = self.app_state
+        let game_id = self
+            .app_state
             .id_generatator
             .lock()
             .unwrap()
             .real_time_generate();
 
         let game = Game::new(
-                game_id,
-                ctx.address(),
-                self.db_pool.clone(),
-                self.app_state.id_generatator.clone(),
-                self.app_state.bot_id,
-                self.app_state.bot_prefix.clone(),
-            ).start();
+            game_id,
+            ctx.address(),
+            self.db_pool.clone(),
+            self.app_state.id_generatator.clone(),
+            self.app_state.bot_id,
+            self.app_state.bot_prefix.clone(),
+        )
+        .start();
         self.games.insert(game_id, game.clone());
 
         game
@@ -208,10 +211,7 @@ impl Handler<Connect> for ChatServer {
             .real_time_generate();
 
         self.clients.insert(ws_id, msg.addr);
-        self.users
-            .entry(msg.user_id)
-            .or_insert(vec![])
-            .push(ws_id);
+        self.users.entry(msg.user_id).or_insert(vec![]).push(ws_id);
 
         if let Some(ws) = self.users.get(&msg.user_id) {
             if ws.len() == 1 {
@@ -266,14 +266,19 @@ impl Handler<GameMsg> for ChatServer {
         let event = msg.event.clone();
         let cmd = &Cmd::GameEvent(msg.event);
         for (uid, ws) in self.users.iter() {
-            if !uids.contains(uid) { continue }
+            if !uids.contains(uid) {
+                continue;
+            }
             for (wsi, client) in self.clients.iter() {
-                if !ws.contains(wsi) { continue }
+                if !ws.contains(wsi) {
+                    continue;
+                }
                 client.do_send(Msg(cmd.to_string())).ok();
                 if let GameEvent::EndGame { .. } = event {
                     if let Ok(user) = get_info(self, *uid) {
-                        client.do_send(Msg(
-                            Cmd::GetUserInfoRes(user).to_string())).ok();
+                        client
+                            .do_send(Msg(Cmd::GetUserInfoRes(user).to_string()))
+                            .ok();
                     }
                 }
             }
@@ -364,11 +369,10 @@ impl Actor for WsClient {
     }
 
     fn stopping(&mut self, _: &mut Self::Context) -> actix::Running {
-        self.addr
-            .do_send(Disconnect {
-                ws_id: self.id,
-                user_id: self.user_id,
-            });
+        self.addr.do_send(Disconnect {
+            ws_id: self.id,
+            user_id: self.user_id,
+        });
         actix::Running::Stop
     }
 }

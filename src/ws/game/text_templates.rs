@@ -59,28 +59,38 @@ pub fn stop_game() -> String {
 }
 
 pub fn user_join(user_id: i64, numplayer: usize) -> String {
-    format!("Người chơi <@{}> đã tham gia trò chơi, hiện có {}.",
-            user_id, numplayer)
+    format!(
+        "Người chơi <@{}> đã tham gia trò chơi, hiện có {}.",
+        user_id, numplayer
+    )
 }
 
 pub fn user_leave(user_id: i64, numplayer: usize) -> String {
-    format!("Người chơi <@{}> đã rời khỏi trò chơi, hiện có {}.",
-            user_id, numplayer)
+    format!(
+        "Người chơi <@{}> đã rời khỏi trò chơi, hiện có {}.",
+        user_id, numplayer
+    )
 }
 
 pub fn user_start(user_id: i64, numvote: usize, numplayer: usize) -> String {
-    format!("Người chơi <@{}> đã sằn sàng. {}/{}",
-            user_id, numvote, numplayer)
+    format!(
+        "Người chơi <@{}> đã sằn sàng. {}/{}",
+        user_id, numvote, numplayer
+    )
 }
 
 pub fn user_stop(user_id: i64, numvote: usize, numplayer: usize) -> String {
-    format!("Người chơi <@{}> muốn dừng trò chơi. {}/{}",
-            user_id, numvote, numplayer)
+    format!(
+        "Người chơi <@{}> muốn dừng trò chơi. {}/{}",
+        user_id, numvote, numplayer
+    )
 }
 
 pub fn user_next(user_id: i64, numvote: usize, numplayer: usize) -> String {
-    format!("Người chơi <@{}> muốn chuyển sang phase tiếp theo. {}/{}",
-            user_id, numvote, numplayer)
+    format!(
+        "Người chơi <@{}> muốn chuyển sang phase tiếp theo. {}/{}",
+        user_id, numvote, numplayer
+    )
 }
 
 pub fn new_phase(bot_prefix: &str, num_day: u16, is_day: bool) -> String {
@@ -112,8 +122,10 @@ pub fn timeout(mut count: u64) -> String {
 }
 
 pub fn vote_kill(user_id: i64, vote_for: i64) -> String {
-    format!("Người chơi <@{}> đã biểu quyết loại <@{}> ra khỏi làng.",
-            user_id, vote_for)
+    format!(
+        "Người chơi <@{}> đã biểu quyết loại <@{}> ra khỏi làng.",
+        user_id, vote_for
+    )
 }
 
 pub fn wrong_cmd_format(prefix: &str, s: &str) -> String {
@@ -137,9 +149,16 @@ pub fn invalid_index(from: usize, to: usize) -> String {
 }
 
 pub fn player_list(list: &Vec<i64>, is_alive: bool) -> String {
-    let mut s = format!("Danh sách những người chơi {}:\n",
-        if is_alive { "còn sống" } else { "đã chết" });
-    s += list.iter()
+    let mut s = format!(
+        "Danh sách những người chơi {}:\n",
+        if is_alive {
+            "còn sống"
+        } else {
+            "đã chết"
+        }
+    );
+    s += list
+        .iter()
         .enumerate()
         .map(|(idx, id)| format!("{}: <@{}>", idx + 1, id))
         .collect::<Vec<String>>()
@@ -152,12 +171,15 @@ pub fn execution(top_vote: Option<(i64, u16)>) -> String {
     match top_vote {
         None => format!(
             "Không có ai bị hành hình. Trò chơi sẽ tiếp tục. Hãy cẩn thân để sống sót!
-==========================================================================="),
+==========================================================================="
+        ),
         Some((uid, votes)) => format!(
             "Thời gian quyết định đã hết.
 Người chơi <@{}> đã bị đưa lên máy chém với số phiếu bầu là {}.
 Hy vọng tình thế của làng có thể thay đổi sau quyết định này.
-===========================================================================", uid, votes)
+===========================================================================",
+            uid, votes
+        ),
     }
 }
 
@@ -165,7 +187,8 @@ pub fn new_day(bot_prefix: &str, num_day: u16) -> String {
     format!(
         "Một ngày mới bắt đầu, mọi người thức giấc. Báo cáo tình hình ngày {}:
 - Hãy nhập `{}vote <player>` để bỏ phiếu cho người bạn nghi là Sói!",
-        num_day, bot_prefix)
+        num_day, bot_prefix
+    )
 }
 
 pub fn new_night() -> String {
@@ -179,7 +202,9 @@ pub fn after_death(user_id: i64) -> String {
 pub fn seer_action(bot_prefix: &str) -> String {
     format!(
         "Tiên tri muốn thấy gì, từ ai?
-- Hãy làm phép bằng cách nhập `{}seer <player>` để xem người chơi đó là ai.", bot_prefix)
+- Hãy làm phép bằng cách nhập `{}seer <player>` để xem người chơi đó là ai.",
+        bot_prefix
+    )
 }
 
 pub fn guard_action(bot_prefix: &str) -> String {
@@ -192,13 +217,17 @@ pub fn witch_action(bot_prefix: &str) -> String {
     format!(
         "Bạn có thể cứu 1 người và giết 1 người. Bạn chỉ được dùng mỗi kỹ năng 1 lần.
 - Nhập `{}reborn <player>` để cứu người.
-- Nhập `{}curse <player>` để nguyền rủa 1 người.", bot_prefix, bot_prefix)
+- Nhập `{}curse <player>` để nguyền rủa 1 người.",
+        bot_prefix, bot_prefix
+    )
 }
 
 pub fn cupid_action(bot_prefix: &str) -> String {
     format!(
         "Cupid muốn cho cặp đôi nào được đồng sinh cộng tử.
-- Hãy làm phép bằng cách nhập `{}ship <player 1> <player 2>` để ghép đôi.", bot_prefix)
+- Hãy làm phép bằng cách nhập `{}ship <player 1> <player 2>` để ghép đôi.",
+        bot_prefix
+    )
 }
 
 pub fn before_wolf_action(bot_prefix: &str) -> String {
@@ -213,7 +242,8 @@ pub fn list_killed(list: &Vec<i64>) -> String {
         s += "Đêm qua, mọi người đều bình an.\n";
     } else {
         s += "Đêm qua, ";
-        s += list.iter()
+        s += list
+            .iter()
             .map(|id| format!("<@{}>", id))
             .collect::<Vec<String>>()
             .join(", ")
@@ -255,7 +285,10 @@ pub fn cupid_out_of_power() -> String {
 }
 
 pub fn wolf_kill(wolf_id: i64, target_id: i64) -> String {
-    format!("Sói <@{}> muốn xử lý <@{}> trong đêm nay.", wolf_id, target_id)
+    format!(
+        "Sói <@{}> muốn xử lý <@{}> trong đêm nay.",
+        wolf_id, target_id
+    )
 }
 
 pub fn guard_success(target_id: i64) -> String {
@@ -267,16 +300,25 @@ pub fn guard_yesterday_target() -> String {
 }
 
 pub fn seer_use_skill(target_id: i64, is_wolf: bool) -> String {
-    format!("Ồ, <@{}> {}là Sói. Pháp lực đã hết, tiên tri cần đi ngủ để hồi phục năng lượng.", target_id, if is_wolf { "" } else { "không phải " })
+    format!(
+        "Ồ, <@{}> {}là Sói. Pháp lực đã hết, tiên tri cần đi ngủ để hồi phục năng lượng.",
+        target_id,
+        if is_wolf { "" } else { "không phải " }
+    )
 }
 
 pub fn shipped_with(target_id: i64, role: &str) -> String {
-    format!("Bạn và <@{}> - {} đã được thần tình yêu chọn làm cặp đôi đồng sinh cộng tử.",
-        target_id, role)
+    format!(
+        "Bạn và <@{}> - {} đã được thần tình yêu chọn làm cặp đôi đồng sinh cộng tử.",
+        target_id, role
+    )
 }
 
 pub fn ship_success(target1: i64, target2: i64) -> String {
-    format!("Bạn đã ghép đôi thành công <@{}> và <@{}>.", target1, target2)
+    format!(
+        "Bạn đã ghép đôi thành công <@{}> và <@{}>.",
+        target1, target2
+    )
 }
 
 pub fn reborn_success(target_id: i64) -> String {
@@ -288,15 +330,24 @@ pub fn curse_success(target_id: i64) -> String {
 }
 
 pub fn reborned(user_id: i64) -> String {
-    format!("Chào mừng <@{}> đã trở lại cuộc đời! Hãy trân trọng cơ hội thứ 2 này!", user_id)
+    format!(
+        "Chào mừng <@{}> đã trở lại cuộc đời! Hãy trân trọng cơ hội thứ 2 này!",
+        user_id
+    )
 }
 
 pub fn couple_died(died: i64, follow: i64, is_day: bool) -> String {
     match is_day {
-        true => format!("Do <@{}> đã chết nên <@{}> cũng đã treo cổ tự vẫn đi theo tình yêu của đời mình.
-===========================================================================", died, follow),
-        false => format!("<@{}> đã dừng cuộc chơi và bước trên con đường tìm kiếm <@{}>
-===========================================================================", follow, died),
+        true => format!(
+            "Do <@{}> đã chết nên <@{}> cũng đã treo cổ tự vẫn đi theo tình yêu của đời mình.
+===========================================================================",
+            died, follow
+        ),
+        false => format!(
+            "<@{}> đã dừng cuộc chơi và bước trên con đường tìm kiếm <@{}>
+===========================================================================",
+            follow, died
+        ),
     }
 }
 
@@ -305,15 +356,16 @@ pub fn end_game(winner: &str) -> String {
 }
 
 pub fn reveal_roles(roles: &HashMap<i64, Box<dyn Player>>) -> String {
-    roles.iter().map(|(uid, p)| {
-        format!("<@{}> là {}", uid, p.get_role_name())
-    })
-    .collect::<Vec<String>>()
-    .join("\n")
+    roles
+        .iter()
+        .map(|(uid, p)| format!("<@{}> là {}", uid, p.get_role_name()))
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
 pub fn wolf_list(list: &Vec<&i64>) -> String {
-    format!("Danh sách Sói: {}.",
+    format!(
+        "Danh sách Sói: {}.",
         list.iter()
             .map(|uid| format!("<@{}>", uid))
             .collect::<Vec<String>>()

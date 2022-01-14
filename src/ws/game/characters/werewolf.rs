@@ -2,8 +2,10 @@ use actix::Addr;
 
 use crate::ws::ChatServer;
 
-use super::{player::{PlayerStatus, Player}, roles};
-
+use super::{
+    player::{Player, PlayerStatus},
+    roles,
+};
 
 pub struct Werewolf {
     pub user_id: i64,
@@ -44,7 +46,7 @@ impl Player for Werewolf {
         &mut self.addr
     }
 
-    fn get_power(&mut self) ->bool {
+    fn get_power(&mut self) -> bool {
         true
     }
 

@@ -1,9 +1,8 @@
-use std::sync::{Arc, Mutex};
 use std::pin::Pin;
+use std::sync::{Arc, Mutex};
 
 use std::future::Future;
 use std::task::{self, Poll, Waker};
-
 
 #[derive(Clone, Debug)]
 pub struct NextFut {

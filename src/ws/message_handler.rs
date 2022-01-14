@@ -1,8 +1,8 @@
-use actix::{Context, Message, Handler};
+use actix::{Context, Handler, Message};
 
 use crate::ws::game::{cmds as game_cmds, text_templates as ttp};
 
-use super::{cmd_parser::Cmd, services, ChatServer, game::Game};
+use super::{cmd_parser::Cmd, game::Game, services, ChatServer};
 
 pub fn msg_handler(
     srv: &mut ChatServer,
@@ -31,13 +31,11 @@ pub fn cmd_handler(
             message,
             reply_to,
         } => {
-            let channel_id = channel_id.parse::<i64>()
-                .map_err(|err| err.to_string())?;
+            let channel_id = channel_id.parse::<i64>().map_err(|err| err.to_string())?;
             let reply_to = reply_to
                 .map(|id| id.parse::<i64>().map_err(|err| err.to_string()))
                 .transpose()?;
-            let chat = services::send_msg(
-                srv, user_id, channel_id, message.clone(), reply_to)?;
+            let chat = services::send_msg(srv, user_id, channel_id, message.clone(), reply_to)?;
             let bc = Cmd::BroadCastMsg {
                 user_id: user_id.to_string(),
                 channel_id: channel_id.to_string(),
@@ -55,8 +53,7 @@ pub fn cmd_handler(
             srv.send_to(&rs, ws_id);
 
             if message.starts_with(srv.app_state.bot_prefix.as_str()) {
-                game_commands(
-                    srv, ctx, ws_id, user_id, channel_id, message, chat.id)
+                game_commands(srv, ctx, ws_id, user_id, channel_id, message, chat.id)
                     .map_err(|err| srv.bot_send(channel_id, err, Some(chat.id)))
                     .ok();
             }
@@ -94,7 +91,8 @@ pub fn cmd_handler(
             for u in users.iter_mut() {
                 u.is_online = Some(
                     srv.users.contains_key(&u.id.parse().unwrap())
-                    || u.id == srv.app_state.bot_id.to_string());
+                        || u.id == srv.app_state.bot_id.to_string(),
+                );
             }
 
             srv.send_to(&Cmd::GetUsersRes(users), ws_id);
@@ -127,7 +125,10 @@ fn game_commands(
         .split(" ")
         .collect::<Vec<&str>>();
 
-    println!("game: {} - {} - {}: {:?}", user_id, channel_id, msg_id, cmds);
+    println!(
+        "game: {} - {} - {}: {:?}",
+        user_id, channel_id, msg_id, cmds
+    );
 
     match cmds[0] {
         "join" => {
@@ -136,7 +137,9 @@ fn game_commands(
             let cur_game = srv.current_game.as_ref();
 
             if let (Some(game), Some(cur)) = (user_game, cur_game) {
-                if game != cur { return Err(ttp::in_other_game()) }
+                if game != cur {
+                    return Err(ttp::in_other_game());
+                }
             }
 
             if let Some(game) = user_game {
@@ -156,31 +159,52 @@ fn game_commands(
         }
         "leave" => {
             must_in_channel(1, channel_id)?;
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Leave {
+            send_cmd(
+                srv,
                 user_id,
+                channel_id,
                 msg_id,
-            })?;
+                game_cmds::Leave { user_id, msg_id },
+            )?;
         }
         "start" => {
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Start {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-            })?;
+                msg_id,
+                game_cmds::Start {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                },
+            )?;
         }
         "stop" => {
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Stop {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-            })?;
+                msg_id,
+                game_cmds::Stop {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                },
+            )?;
         }
         "next" => {
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Next {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-            })?;
+                msg_id,
+                game_cmds::Next {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                },
+            )?;
         }
         "vote" => {
             if cmds.len() != 2 {
@@ -192,12 +216,18 @@ fn game_commands(
 
             let vote_for = get_target(&cmds[1])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Vote {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                vote_for,
-            })?;
+                msg_id,
+                game_cmds::Vote {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    vote_for,
+                },
+            )?;
         }
         "kill" => {
             if cmds.len() != 2 {
@@ -209,12 +239,18 @@ fn game_commands(
 
             let target = get_target(&cmds[1])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Kill {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                target,
-            })?;
+                msg_id,
+                game_cmds::Kill {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    target,
+                },
+            )?;
         }
         "guard" => {
             if cmds.len() != 2 {
@@ -226,12 +262,18 @@ fn game_commands(
 
             let target = get_target(&cmds[1])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Guard {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                target,
-            })?;
+                msg_id,
+                game_cmds::Guard {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    target,
+                },
+            )?;
         }
         "seer" => {
             if cmds.len() != 2 {
@@ -243,12 +285,18 @@ fn game_commands(
 
             let target = get_target(&cmds[1])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Seer {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                target,
-            })?;
+                msg_id,
+                game_cmds::Seer {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    target,
+                },
+            )?;
         }
         "ship" => {
             if cmds.len() != 3 {
@@ -261,13 +309,19 @@ fn game_commands(
             let target1 = get_target(&cmds[1])?;
             let target2 = get_target(&cmds[2])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Ship {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                target1,
-                target2
-            })?;
+                msg_id,
+                game_cmds::Ship {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    target1,
+                    target2,
+                },
+            )?;
         }
         "reborn" => {
             if cmds.len() != 2 {
@@ -279,12 +333,18 @@ fn game_commands(
 
             let target = get_target(&cmds[1])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Reborn {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                target,
-            })?;
+                msg_id,
+                game_cmds::Reborn {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    target,
+                },
+            )?;
         }
         "curse" => {
             if cmds.len() != 2 {
@@ -296,12 +356,18 @@ fn game_commands(
 
             let target = get_target(&cmds[1])?;
 
-            send_cmd(srv, user_id, channel_id, msg_id, game_cmds::Curse {
+            send_cmd(
+                srv,
                 user_id,
-                msg_id,
                 channel_id,
-                target,
-            })?;
+                msg_id,
+                game_cmds::Curse {
+                    user_id,
+                    msg_id,
+                    channel_id,
+                    target,
+                },
+            )?;
         }
         _ => {}
     }
@@ -309,12 +375,12 @@ fn game_commands(
     Ok(())
 }
 
-fn must_in_channel(
-    channel_id: i64,
-    current_channel_id: i64,
-) -> Result<(), String> {
-    if channel_id == current_channel_id { Ok(()) }
-    else { Err(ttp::must_in_channel(channel_id)) }
+fn must_in_channel(channel_id: i64, current_channel_id: i64) -> Result<(), String> {
+    if channel_id == current_channel_id {
+        Ok(())
+    } else {
+        Err(ttp::must_in_channel(channel_id))
+    }
 }
 
 fn send_cmd<M>(
@@ -351,7 +417,8 @@ fn get_target(arg: &str) -> Result<Result<i64, u16>, String> {
         Ok(Err(id))
     } else {
         let len = arg.len();
-        Ok(Ok(arg[2..len-1].parse::<i64>()
+        Ok(Ok(arg[2..len - 1]
+            .parse::<i64>()
             .map_err(|err| err.to_string())?))
     }
 }

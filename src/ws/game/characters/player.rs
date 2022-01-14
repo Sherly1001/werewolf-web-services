@@ -1,6 +1,9 @@
 use actix::Addr;
 
-use crate::ws::{ChatServer, game::{cmds::BotMsg, text_templates as ttp}};
+use crate::ws::{
+    game::{cmds::BotMsg, text_templates as ttp},
+    ChatServer,
+};
 
 use super::roles;
 
@@ -100,8 +103,9 @@ pub trait Player {
 
     fn get_killed(&mut self, is_suicide: bool) -> bool {
         let stt = self.get_status();
-        if *stt == PlayerStatus::Protected && !is_suicide { false }
-        else {
+        if *stt == PlayerStatus::Protected && !is_suicide {
+            false
+        } else {
             *stt = PlayerStatus::Killed;
             true
         }

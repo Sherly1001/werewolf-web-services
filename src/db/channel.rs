@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use diesel::prelude::*;
 use diesel::PgConnection;
 
-use crate::models::user::User;
 use crate::models::channel::{
-    Channel, ChatLine, ChatMsg, ChannelPermission,
-    UserChannelPermission, UserChannelPermissionDisplay,
+    Channel, ChannelPermission, ChatLine, ChatMsg, UserChannelPermission,
+    UserChannelPermissionDisplay,
 };
-use crate::schema::{channels, chat_lines, users, user_channel_permissions as ucp};
+use crate::models::user::User;
+use crate::schema::{channels, chat_lines, user_channel_permissions as ucp, users};
 
 pub fn get_pers(
     conn: &PgConnection,
@@ -18,11 +18,11 @@ pub fn get_pers(
     ucp::table
         .inner_join(channels::table)
         .select((
-                ucp::user_id,
-                ucp::channel_id,
-                channels::channel_name,
-                ucp::readable,
-                ucp::sendable,
+            ucp::user_id,
+            ucp::channel_id,
+            channels::channel_name,
+            ucp::readable,
+            ucp::sendable,
         ))
         .filter(ucp::user_id.eq(user_id))
         .filter(ucp::channel_id.eq(channel_id))
@@ -36,11 +36,11 @@ pub fn get_all_pers(
     ucp::table
         .inner_join(channels::table)
         .select((
-                ucp::user_id,
-                ucp::channel_id,
-                channels::channel_name,
-                ucp::readable,
-                ucp::sendable,
+            ucp::user_id,
+            ucp::channel_id,
+            channels::channel_name,
+            ucp::readable,
+            ucp::sendable,
         ))
         .filter(ucp::user_id.eq(user_id))
         .filter(ucp::readable.eq(true))
@@ -48,11 +48,14 @@ pub fn get_all_pers(
         .map(|pers| {
             let mut map = HashMap::new();
             for u in pers.iter() {
-                map.insert(u.channel_id.to_string(), ChannelPermission {
-                    channel_name: u.channel_name.clone(),
-                    readable: u.readable,
-                    sendable: u.sendable,
-                });
+                map.insert(
+                    u.channel_id.to_string(),
+                    ChannelPermission {
+                        channel_name: u.channel_name.clone(),
+                        readable: u.readable,
+                        sendable: u.sendable,
+                    },
+                );
             }
             map
         })
@@ -81,16 +84,9 @@ pub fn set_pers(
 }
 
 #[allow(dead_code)]
-pub fn create_channel(
-    conn: &PgConnection,
-    id: i64,
-    channel_name: String,
-) -> QueryResult<Channel> {
+pub fn create_channel(conn: &PgConnection, id: i64, channel_name: String) -> QueryResult<Channel> {
     diesel::insert_into(channels::table)
-        .values(&Channel {
-            id,
-            channel_name,
-        })
+        .values(&Channel { id, channel_name })
         .get_result(conn)
 }
 
@@ -121,10 +117,10 @@ pub fn get_messages(
 ) -> QueryResult<Vec<ChatMsg>> {
     chat_lines::table
         .select((
-                chat_lines::id,
-                chat_lines::user_id,
-                chat_lines::message,
-                chat_lines::reply_to,
+            chat_lines::id,
+            chat_lines::user_id,
+            chat_lines::message,
+            chat_lines::reply_to,
         ))
         .filter(chat_lines::channel_id.eq(channel_id))
         .order(chat_lines::id.desc())
@@ -133,10 +129,7 @@ pub fn get_messages(
         .get_results(conn)
 }
 
-pub fn get_users(
-    conn: &PgConnection,
-    channel_id: i64,
-) -> QueryResult<Vec<User>> {
+pub fn get_users(conn: &PgConnection, channel_id: i64) -> QueryResult<Vec<User>> {
     ucp::table
         .filter(ucp::channel_id.eq(channel_id))
         .filter(ucp::readable.eq(true))

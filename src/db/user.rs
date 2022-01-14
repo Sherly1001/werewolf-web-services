@@ -62,27 +62,18 @@ pub fn login(conn: &PgConnection, username: &str, passwd: &str) -> Result<User, 
 }
 
 pub fn get_all(conn: &PgConnection) -> QueryResult<Vec<User>> {
-    users::table.get_results::<User>(conn)
-        .map(|mut users| {
-            users.sort_by(|a, b| {
-                a.username.cmp(&b.username)
-            });
-            users
-        })
+    users::table.get_results::<User>(conn).map(|mut users| {
+        users.sort_by(|a, b| a.username.cmp(&b.username));
+        users
+    })
 }
 
 pub fn get_info(conn: &PgConnection, user_id: i64) -> QueryResult<User> {
-    users::table.find(user_id)
-        .get_result::<User>(conn)
+    users::table.find(user_id).get_result::<User>(conn)
 }
 
-pub fn update_win(
-    conn: &PgConnection,
-    user_id: i64,
-    is_winner: bool,
-) -> QueryResult<usize> {
-    let mut user = users::table.find(user_id)
-        .get_result::<User>(conn)?;
+pub fn update_win(conn: &PgConnection, user_id: i64, is_winner: bool) -> QueryResult<usize> {
+    let mut user = users::table.find(user_id).get_result::<User>(conn)?;
     let user_filter = users::table.find(user_id);
 
     if is_winner {
@@ -92,9 +83,6 @@ pub fn update_win(
     }
 
     diesel::update(user_filter)
-        .set((
-            users::win.eq(user.win),
-            users::lose.eq(user.lose),
-        ))
+        .set((users::win.eq(user.win), users::lose.eq(user.lose)))
         .execute(conn)
 }

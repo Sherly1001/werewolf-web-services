@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 
-use crate::models::channel::{DispChatMsg, ChannelPermission};
+use crate::models::channel::{ChannelPermission, DispChatMsg};
 use crate::models::user::UserDisplay;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,20 +57,12 @@ pub enum GameEvent {
     UserStart(String),
     UserStop(String),
     UserNext(String),
-    UserVote {
-        user_id: String,
-        vote_for: String,
-    },
+    UserVote { user_id: String, vote_for: String },
     PlayerDied(String),
     PlayerReborn(String),
-    NewPhase {
-        num_day: u16,
-        is_day: bool,
-    },
+    NewPhase { num_day: u16, is_day: bool },
     StartGame,
-    EndGame {
-        winner: String,
-    },
+    EndGame { winner: String },
     StopGame,
 }
 

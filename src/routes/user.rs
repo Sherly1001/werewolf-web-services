@@ -3,7 +3,7 @@ use actix_web::{get, post, web};
 use serde::Deserialize;
 
 use crate::auth::Auth;
-use crate::config::{AppState, DbPool, get_conn};
+use crate::config::{get_conn, AppState, DbPool};
 use crate::db::{channel, user};
 use crate::error::{Res, ResBody};
 use crate::models::user::UserDisplay;
@@ -152,7 +152,7 @@ pub async fn send_msg(
 
     if !pers.readable || !pers.sendable {
         return Err(ErrorUnauthorized(
-            "don't have permission to send message to this channel"
+            "don't have permission to send message to this channel",
         ));
     }
 

@@ -2,8 +2,10 @@ use actix::Addr;
 
 use crate::ws::ChatServer;
 
-use super::{player::{PlayerStatus, Player}, roles};
-
+use super::{
+    player::{Player, PlayerStatus},
+    roles,
+};
 
 pub struct Superwolf {
     pub user_id: i64,

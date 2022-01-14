@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
-use actix::{Message, Handler};
+use actix::{Handler, Message};
 
 use crate::ws::cmd_parser::GameEvent;
 
 use super::characters::roles;
-use super::{Game, game::GameChannel};
 use super::text_templates as ttp;
+use super::{game::GameChannel, Game};
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
@@ -182,13 +182,17 @@ impl Handler<Join> for Game {
         self.addr.do_send(UpdatePers(msg.user_id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
-            msg: ttp::user_join(msg.user_id,
-                self.info.lock().unwrap().users.len()),
+            msg: ttp::user_join(msg.user_id, self.info.lock().unwrap().users.len()),
             reply_to: Some(msg.msg_id),
         });
         self.addr.do_send(BotMsg {
-            channel_id: *self.info.lock().unwrap()
-                .channels.get(&GameChannel::GamePlay).unwrap(),
+            channel_id: *self
+                .info
+                .lock()
+                .unwrap()
+                .channels
+                .get(&GameChannel::GamePlay)
+                .unwrap(),
             msg: format!("Hi <@{}>.", msg.user_id),
             reply_to: None,
         });
@@ -203,14 +207,16 @@ impl Handler<Leave> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Leave, _: &mut Self::Context) -> Self::Result {
-        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
+        if !self.must_in_game(msg.user_id, msg.msg_id) {
+            return;
+        }
 
         if self.info.lock().unwrap().is_started {
             return self.addr.do_send(BotMsg {
                 channel_id: 1,
                 msg: ttp::leave_on_started(),
                 reply_to: Some(msg.msg_id),
-            })
+            });
         }
 
         if let Err(err) = self.remove_user(msg.user_id) {
@@ -224,13 +230,17 @@ impl Handler<Leave> for Game {
         self.addr.do_send(UpdatePers(msg.user_id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
-            msg: ttp::user_leave(msg.user_id,
-                self.info.lock().unwrap().users.len()),
+            msg: ttp::user_leave(msg.user_id, self.info.lock().unwrap().users.len()),
             reply_to: Some(msg.msg_id),
         });
         self.addr.do_send(BotMsg {
-            channel_id: *self.info.lock().unwrap()
-                .channels.get(&GameChannel::GamePlay).unwrap(),
+            channel_id: *self
+                .info
+                .lock()
+                .unwrap()
+                .channels
+                .get(&GameChannel::GamePlay)
+                .unwrap(),
             msg: format!("Bye <@{}>.", msg.user_id),
             reply_to: None,
         });
@@ -245,10 +255,17 @@ impl Handler<Start> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Start, _: &mut Self::Context) -> Self::Result {
-        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
+        if !self.must_in_game(msg.user_id, msg.msg_id) {
+            return;
+        }
 
-        let gameplay = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::GamePlay).unwrap();
+        let gameplay = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
         let channel_id = msg.channel_id;
 
         if channel_id != 1 && channel_id != gameplay {
@@ -264,7 +281,7 @@ impl Handler<Start> for Game {
                 channel_id,
                 msg: ttp::game_is_started(),
                 reply_to: Some(msg.msg_id),
-            })
+            });
         }
 
         let num_users = self.info.lock().unwrap().users.len();
@@ -293,16 +310,18 @@ impl Handler<Start> for Game {
         }
 
         match self.start() {
-            Err(err) => return self.addr.do_send(BotMsg {
-                channel_id,
-                msg: err,
-                reply_to: Some(msg.msg_id),
-            }),
+            Err(err) => {
+                return self.addr.do_send(BotMsg {
+                    channel_id,
+                    msg: err,
+                    reply_to: Some(msg.msg_id),
+                })
+            }
             Ok(roles) => self.addr.do_send(BotMsg {
                 channel_id: gameplay,
                 msg: ttp::roles_list(&roles),
                 reply_to: None,
-            })
+            }),
         }
 
         self.addr.do_send(StartGame(self.id));
@@ -326,10 +345,17 @@ impl Handler<Stop> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Stop, _: &mut Self::Context) -> Self::Result {
-        if !self.must_in_game(msg.user_id, msg.msg_id) { return }
+        if !self.must_in_game(msg.user_id, msg.msg_id) {
+            return;
+        }
 
-        let gameplay = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::GamePlay).unwrap();
+        let gameplay = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
         let channel_id = msg.channel_id;
 
         if channel_id != 1 && channel_id != gameplay {
@@ -390,14 +416,16 @@ impl Handler<Next> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Next, _: &mut Self::Context) -> Self::Result {
-        let gameplay = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::GamePlay).unwrap();
-        if !self.assert_cmd_in(
-            Some(gameplay),
-            msg.user_id,
-            msg.msg_id,
-            msg.channel_id,
-        ) { return }
+        let gameplay = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
+        if !self.assert_cmd_in(Some(gameplay), msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
 
         self.info.lock().unwrap().vote_nexts.insert(msg.user_id);
 
@@ -426,14 +454,16 @@ impl Handler<Vote> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Vote, _: &mut Self::Context) -> Self::Result {
-        let gameplay = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::GamePlay).unwrap();
-        if !self.assert_cmd_in(
-            Some(gameplay),
-            msg.user_id,
-            msg.msg_id,
-            msg.channel_id,
-        ) { return }
+        let gameplay = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::GamePlay)
+            .unwrap();
+        if !self.assert_cmd_in(Some(gameplay), msg.user_id, msg.msg_id, msg.channel_id) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let vote_user = get_from_target(&user_list, msg.vote_for, Some(true));
@@ -446,7 +476,11 @@ impl Handler<Vote> for Game {
         }
         let vote_user = vote_user.unwrap();
 
-        self.info.lock().unwrap().vote_kill.insert(msg.user_id, vote_user);
+        self.info
+            .lock()
+            .unwrap()
+            .vote_kill
+            .insert(msg.user_id, vote_user);
         self.addr.do_send(BotMsg {
             channel_id: gameplay,
             msg: ttp::vote_kill(msg.user_id, vote_user),
@@ -466,8 +500,13 @@ impl Handler<Kill> for Game {
     type Result = ();
 
     fn handle(&mut self, msg: Kill, _ctx: &mut Self::Context) -> Self::Result {
-        let werewolf = *self.info.lock().unwrap()
-            .channels.get(&GameChannel::WereWolf).unwrap();
+        let werewolf = *self
+            .info
+            .lock()
+            .unwrap()
+            .channels
+            .get(&GameChannel::WereWolf)
+            .unwrap();
         if !assert_cmd(
             self,
             &[roles::WEREWOLF, roles::SUPERWOLF],
@@ -476,7 +515,9 @@ impl Handler<Kill> for Game {
             msg.user_id,
             msg.msg_id,
             msg.channel_id,
-        ) { return }
+        ) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let target = get_from_target(&user_list, msg.target, Some(true));
@@ -493,7 +534,11 @@ impl Handler<Kill> for Game {
             return;
         }
 
-        self.info.lock().unwrap().wolf_kill.insert(msg.user_id, target);
+        self.info
+            .lock()
+            .unwrap()
+            .wolf_kill
+            .insert(msg.user_id, target);
         self.addr.do_send(BotMsg {
             channel_id: werewolf,
             msg: ttp::wolf_kill(msg.user_id, target),
@@ -514,7 +559,9 @@ impl Handler<Guard> for Game {
             msg.user_id,
             msg.msg_id,
             msg.channel_id,
-        ) { return }
+        ) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let target = get_from_target(&user_list, msg.target, Some(true));
@@ -564,7 +611,9 @@ impl Handler<Seer> for Game {
             msg.user_id,
             msg.msg_id,
             msg.channel_id,
-        ) { return }
+        ) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let target = get_from_target(&user_list, msg.target, Some(true));
@@ -583,8 +632,8 @@ impl Handler<Seer> for Game {
 
         let mut info_lock = self.info.lock().unwrap();
         let player = info_lock.players.get_mut(&target).unwrap();
-        let is_wolf = player.get_role_name() == roles::WEREWOLF
-            || player.get_role_name() == roles::LYCAN;
+        let is_wolf =
+            player.get_role_name() == roles::WEREWOLF || player.get_role_name() == roles::LYCAN;
         if player.get_role_name() == roles::FOX {
             info_lock.night_pending_kill.insert(target);
         }
@@ -609,7 +658,9 @@ impl Handler<Ship> for Game {
             msg.user_id,
             msg.msg_id,
             msg.channel_id,
-        ) { return }
+        ) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let target1 = get_from_target(&user_list, msg.target1, Some(true));
@@ -678,7 +729,9 @@ impl Handler<Reborn> for Game {
             msg.user_id,
             msg.msg_id,
             msg.channel_id,
-        ) { return }
+        ) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let target = get_from_target(&user_list, msg.target, Some(false));
@@ -733,7 +786,9 @@ impl Handler<Curse> for Game {
             msg.user_id,
             msg.msg_id,
             msg.channel_id,
-        ) { return }
+        ) {
+            return;
+        }
 
         let user_list = self.info.lock().unwrap().get_alives();
         let target = get_from_target(&user_list, msg.target, Some(true));
@@ -822,15 +877,16 @@ fn assert_cmd(
     msg_id: i64,
     msg_channel_id: i64,
 ) -> bool {
-    if !game.assert_cmd_in(
-        channel_id,
-        user_id,
-        msg_id,
-        msg_channel_id,
-    ) { return false }
+    if !game.assert_cmd_in(channel_id, user_id, msg_id, msg_channel_id) {
+        return false;
+    }
 
-    if roles.len() > 0 && roles.iter()
-        .map(|r| game.assert_role(r, user_id)).all(|v| !v) {
+    if roles.len() > 0
+        && roles
+            .iter()
+            .map(|r| game.assert_role(r, user_id))
+            .all(|v| !v)
+    {
         game.addr.do_send(BotMsg {
             channel_id: msg_channel_id,
             msg: ttp::invalid_author(),
@@ -870,12 +926,7 @@ fn assert_cmd(
     true
 }
 
-fn assert_use_skill(
-    game: &Game,
-    user_id: i64,
-    msg_id: i64,
-    msg_channel_id: i64,
-) -> bool {
+fn assert_use_skill(game: &Game, user_id: i64, msg_id: i64, msg_channel_id: i64) -> bool {
     let mut info_lock = game.info.lock().unwrap();
     let player = info_lock.players.get_mut(&user_id).unwrap();
 
