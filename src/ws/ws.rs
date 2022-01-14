@@ -280,13 +280,18 @@ impl Handler<cmds::GameMsg> for ChatServer {
 
     fn handle(
         &mut self,
-        msg: cmds::GameMsg,
+        mut msg: cmds::GameMsg,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
-        let uids = services::get_game_users(self, msg.game_id)
+        let mut uids = services::get_game_users(self, msg.game_id)
             .iter()
             .map(|u| u.id)
             .collect::<Vec<i64>>();
+
+        if let GameEvent::StopGame_(uids_v) = msg.event.clone() {
+            uids = uids_v;
+            msg.event = GameEvent::StopGame;
+        }
 
         let event = msg.event.clone();
         let cmd = &Cmd::GameEvent(msg.event);
@@ -300,6 +305,11 @@ impl Handler<cmds::GameMsg> for ChatServer {
                 &Cmd::GameEvent(GameEvent::LeaveGame(msg.game_id.to_string())),
                 uid_s.parse().unwrap(),
             ),
+            GameEvent::StartGame => self.current_game = None,
+            GameEvent::StopGame => {
+                self.games.remove(&msg.game_id);
+                self.current_game = None;
+            }
             _ => {}
         }
 
@@ -321,31 +331,6 @@ impl Handler<cmds::GameMsg> for ChatServer {
                 }
             }
         }
-    }
-}
-
-impl Handler<cmds::StartGame> for ChatServer {
-    type Result = ();
-
-    fn handle(
-        &mut self,
-        _msg: cmds::StartGame,
-        _ctx: &mut Self::Context,
-    ) -> Self::Result {
-        self.current_game = None;
-    }
-}
-
-impl Handler<cmds::StopGame> for ChatServer {
-    type Result = ();
-
-    fn handle(
-        &mut self,
-        msg: cmds::StopGame,
-        _: &mut Self::Context,
-    ) -> Self::Result {
-        self.games.remove(&msg.0);
-        self.current_game = None;
     }
 }
 
