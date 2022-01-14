@@ -134,11 +134,6 @@ fn game_commands(
         .split(" ")
         .collect::<Vec<&str>>();
 
-    println!(
-        "game: {} - {} - {}: {:?}",
-        user_id, channel_id, msg_id, cmds
-    );
-
     match cmds[0] {
         "join" => {
             must_in_channel(1, channel_id)?;

@@ -12,15 +12,9 @@ use actix_web_actors::ws::{
 
 use crate::config::{AppState, DbPool};
 
-use super::cmd_parser::GameEvent;
-use super::game::cmds::UpdatePers;
-use super::services::get_info;
 use super::{
-    cmd_parser::Cmd,
-    game::{
-        cmds::{BotMsg, GameMsg, StartGame, StopGame},
-        Game,
-    },
+    cmd_parser::{Cmd, GameEvent},
+    game::{cmds, Game},
     message_handler::msg_handler,
     services,
 };
@@ -209,6 +203,7 @@ impl Actor for ChatServer {
             let id = game.id;
             let addr = game.start();
             self.games.insert(id, addr.clone());
+            self.current_game = Some(addr);
         }
     }
 }
@@ -268,20 +263,24 @@ impl Handler<ClientMsg> for ChatServer {
     }
 }
 
-impl Handler<BotMsg> for ChatServer {
-    type Result = ();
-
-    fn handle(&mut self, msg: BotMsg, _: &mut Self::Context) -> Self::Result {
-        self.bot_send(msg.channel_id, msg.msg, msg.reply_to);
-    }
-}
-
-impl Handler<GameMsg> for ChatServer {
+impl Handler<cmds::BotMsg> for ChatServer {
     type Result = ();
 
     fn handle(
         &mut self,
-        msg: GameMsg,
+        msg: cmds::BotMsg,
+        _: &mut Self::Context,
+    ) -> Self::Result {
+        self.bot_send(msg.channel_id, msg.msg, msg.reply_to);
+    }
+}
+
+impl Handler<cmds::GameMsg> for ChatServer {
+    type Result = ();
+
+    fn handle(
+        &mut self,
+        msg: cmds::GameMsg,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
         let uids = services::get_game_users(self, msg.game_id)
@@ -291,6 +290,19 @@ impl Handler<GameMsg> for ChatServer {
 
         let event = msg.event.clone();
         let cmd = &Cmd::GameEvent(msg.event);
+
+        match event.clone() {
+            GameEvent::UserJoin(uid_s) => self.send_to_user(
+                &Cmd::GameEvent(GameEvent::JoinGame(msg.game_id.to_string())),
+                uid_s.parse().unwrap(),
+            ),
+            GameEvent::UserLeave(uid_s) => self.send_to_user(
+                &Cmd::GameEvent(GameEvent::LeaveGame(msg.game_id.to_string())),
+                uid_s.parse().unwrap(),
+            ),
+            _ => {}
+        }
+
         for (uid, ws) in self.users.iter() {
             if !uids.contains(uid) {
                 continue;
@@ -301,7 +313,7 @@ impl Handler<GameMsg> for ChatServer {
                 }
                 client.do_send(Msg(cmd.to_string())).ok();
                 if let GameEvent::EndGame { .. } = event {
-                    if let Ok(user) = get_info(self, *uid) {
+                    if let Ok(user) = services::get_info(self, *uid) {
                         client
                             .do_send(Msg(Cmd::GetUserInfoRes(user).to_string()))
                             .ok();
@@ -312,33 +324,37 @@ impl Handler<GameMsg> for ChatServer {
     }
 }
 
-impl Handler<StartGame> for ChatServer {
+impl Handler<cmds::StartGame> for ChatServer {
     type Result = ();
 
     fn handle(
         &mut self,
-        _msg: StartGame,
+        _msg: cmds::StartGame,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
         self.current_game = None;
     }
 }
 
-impl Handler<StopGame> for ChatServer {
+impl Handler<cmds::StopGame> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: StopGame, _: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: cmds::StopGame,
+        _: &mut Self::Context,
+    ) -> Self::Result {
         self.games.remove(&msg.0);
         self.current_game = None;
     }
 }
 
-impl Handler<UpdatePers> for ChatServer {
+impl Handler<cmds::UpdatePers> for ChatServer {
     type Result = ();
 
     fn handle(
         &mut self,
-        msg: UpdatePers,
+        msg: cmds::UpdatePers,
         _: &mut Self::Context,
     ) -> Self::Result {
         self.update_pers(msg.0);
