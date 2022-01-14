@@ -127,14 +127,6 @@ pub struct GameMsg {
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
-pub struct StopGame(pub i64);
-
-#[derive(Message, Debug)]
-#[rtype(result = "()")]
-pub struct StartGame(pub i64);
-
-#[derive(Message, Debug)]
-#[rtype(result = "()")]
 pub struct UpdatePers(pub i64);
 
 impl Game {
@@ -330,7 +322,6 @@ impl Handler<Start> for Game {
             }),
         }
 
-        self.addr.do_send(StartGame(self.id));
         self.addr.do_send(BotMsg {
             channel_id: 1,
             msg: ttp::start_game(),
@@ -407,7 +398,6 @@ impl Handler<Stop> for Game {
             game_id: self.id,
             event: GameEvent::StopGame,
         });
-        self.addr.do_send(StopGame(self.id));
 
         for &user in self.info.lock().unwrap().users.iter() {
             self.addr.do_send(UpdatePers(user));
