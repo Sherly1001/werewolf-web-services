@@ -203,6 +203,7 @@ impl Actor for ChatServer {
             let id = game.id;
             let addr = game.start();
             self.games.insert(id, addr.clone());
+            self.current_game = Some(addr);
         }
     }
 }
