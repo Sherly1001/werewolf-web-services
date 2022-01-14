@@ -289,6 +289,19 @@ impl Handler<cmds::GameMsg> for ChatServer {
 
         let event = msg.event.clone();
         let cmd = &Cmd::GameEvent(msg.event);
+
+        match event.clone() {
+            GameEvent::UserJoin(uid_s) => self.send_to_user(
+                &Cmd::GameEvent(GameEvent::JoinGame(msg.game_id.to_string())),
+                uid_s.parse().unwrap(),
+            ),
+            GameEvent::UserLeave(uid_s) => self.send_to_user(
+                &Cmd::GameEvent(GameEvent::LeaveGame(msg.game_id.to_string())),
+                uid_s.parse().unwrap(),
+            ),
+            _ => {}
+        }
+
         for (uid, ws) in self.users.iter() {
             if !uids.contains(uid) {
                 continue;

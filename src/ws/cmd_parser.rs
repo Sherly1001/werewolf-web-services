@@ -52,6 +52,8 @@ pub enum Cmd {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum GameEvent {
+    JoinGame(String),
+    LeaveGame(String),
     UserJoin(String),
     UserLeave(String),
     UserStart(String),
