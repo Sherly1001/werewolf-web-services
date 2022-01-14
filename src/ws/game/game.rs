@@ -16,6 +16,7 @@ use crate::{config::DbPool, db};
 use super::characters::{self, player::Player, roles};
 use super::game_loop::GameLoop;
 use super::next::NextFut;
+use super::text_templates as ttp;
 
 pub struct GameInfo {
     pub channels: HashMap<GameChannel, i64>,
@@ -372,7 +373,7 @@ impl Game {
         let mut info = self.info.lock().unwrap();
 
         if info.is_stopped {
-            return Ok(());
+            return Err(ttp::stop_game());
         }
         let conn = get_conn(self.db_pool.clone());
         db::game::delete(&conn, self.id).map_err(|err| err.to_string())?;
@@ -391,7 +392,6 @@ impl Game {
             return false;
         }
         use super::cmds::BotMsg;
-        use super::text_templates as ttp;
 
         if !self.info.lock().unwrap().is_started {
             self.addr.do_send(BotMsg {

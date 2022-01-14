@@ -280,13 +280,18 @@ impl Handler<cmds::GameMsg> for ChatServer {
 
     fn handle(
         &mut self,
-        msg: cmds::GameMsg,
+        mut msg: cmds::GameMsg,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
-        let uids = services::get_game_users(self, msg.game_id)
+        let mut uids = services::get_game_users(self, msg.game_id)
             .iter()
             .map(|u| u.id)
             .collect::<Vec<i64>>();
+
+        if let GameEvent::StopGame_(uids_v) = msg.event.clone() {
+            uids = uids_v;
+            msg.event = GameEvent::StopGame;
+        }
 
         let event = msg.event.clone();
         let cmd = &Cmd::GameEvent(msg.event);

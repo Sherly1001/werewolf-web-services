@@ -396,7 +396,15 @@ impl Handler<Stop> for Game {
         });
         self.addr.do_send(GameMsg {
             game_id: self.id,
-            event: GameEvent::StopGame,
+            event: GameEvent::StopGame_(
+                self.info
+                    .lock()
+                    .unwrap()
+                    .users
+                    .iter()
+                    .map(|&uid| uid)
+                    .collect(),
+            ),
         });
 
         for &user in self.info.lock().unwrap().users.iter() {

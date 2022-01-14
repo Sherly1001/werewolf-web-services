@@ -66,6 +66,7 @@ pub enum GameEvent {
     StartGame,
     EndGame { winner: String },
     StopGame,
+    StopGame_(Vec<i64>),
 }
 
 impl Cmd {
